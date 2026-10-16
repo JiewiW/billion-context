@@ -6379,7 +6379,7 @@ test("runLaunch codebuddy: inherited proxy vars stripped so loopback traffic can
     const seenEnv = await captureLaunchedClientEnv("codebuddy");
     const origin = seenEnv.BILLION_CONTEXT_PROXY;
     assert.ok(/^http:\/\/127\.0\.0\.1:\d+$/.test(String(origin)), `origin: ${origin}`);
-    assert.ok(String(seenEnv.NODE_EXTRA_CA_CERTS).endsWith(path.join("billion-context", "ca", "root-ca.pem")), String(seenEnv.NODE_EXTRA_CERTS));
+    assert.ok(String(seenEnv.NODE_EXTRA_CA_CERTS).endsWith(path.join("billion-context", "ca", "root-ca.pem")), String(seenEnv.NODE_EXTRA_CA_CERTS));
     // #3446: codebuddy's base URL is bili's own /bili/ loopback form, so the launcher
     // injects the loopback NO_PROXY triple; the inherited ".corp" entries stay stripped.
     assertInheritedProxyStripped(seenEnv, String(origin), {
