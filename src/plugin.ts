@@ -1142,20 +1142,31 @@ function personaDescendantsOf(baseId: string): Session[] {
     return listSessions().filter((s) => s.id.startsWith(prefix) && (s.stats?.requests ?? 0) > 0 && now - (s.lastSeen ?? 0) <= PERSONA_LINEAGE_FRESH_MS && holdsRefs(s));
 }
 
-/** #2601: the lineage's live session when `parent` (resolved from the host's
- *  stamped RAW id) has gone stale — i.e. a fresh fork carries strictly newer
- *  traffic than the parent. The host (dsh) cannot know bili derived a `|sub:`
- *  key, so its compress/decompress/acp_status forwards keep stamping the raw
- *  id; binding them to the frozen parent is the #2601 "every ref is unknown
- *  to this session" breaker. Undefined when the parent is still the live
- *  session (switch back to the raw persona self-heals: the parent then has
- *  the newest lastSeen) or when no descendant holds refs (#2948: a ref-less
+/** #2601: the lineage's live session when the host-stamped RAW parent went
+ *  FROZEN before the fork was born — the fork is that parent's continuation,
+ *  and the host's compress/decompress/acp_status forwards (which keep
+ *  stamping the raw id, because dsh cannot know bili derived a `|sub:` key)
+ *  must follow it or strand on refs the frozen parent no longer holds — the
+ *  #2601 "every ref is unknown to this session" breaker. The discriminator
+ *  is BIRTH ORDER, not freshness: `fork.createdAt > parent.lastSeen` means
+ *  the parent saw NO traffic after the fork was minted (frozen), so the
+ *  fork's namespace is the only one the host's refs can live in. A parent
+ *  that kept receiving turns after the fork was created (parallel persona
+ *  forks / subagent lanes sharing the base id) stays authoritative — it is
+ *  live, ITS namespace holds the refs, and re-routing the host's calls into
+ *  a fork's namespace reproduces the same breaker in reverse (the dsh
+ *  fusion-board incident: 8× cannot-anchor after the redirect; the
+ *  pre-fix `fork.lastSeen > parent.lastSeen` rule also matches this shape —
+ *  a still-active parent with a merely fresher parallel fork). Undefined
+ *  when the parent is still the live session (switch back to the raw
+ *  persona self-heals: the parent's lastSeen lands strictly after the
+ *  fork's createdAt) or when no descendant holds refs (#2948: a ref-less
  *  aux lane is not a target — following it reproduces the same breaker it
  *  exists to cure; candidates are filtered in personaDescendantsOf, so a
  *  ref-holding sibling still wins over a fresher ref-less one). */
 function livePersonaDescendant(parent: Session): Session | undefined {
     if (parent.id.includes("|sub:")) return undefined;
-    return personaDescendantsOf(parent.id).find((s) => (s.lastSeen ?? 0) > (parent.lastSeen ?? 0));
+    return personaDescendantsOf(parent.id).find((s) => (s.createdAt ?? 0) > (parent.lastSeen ?? 0));
 }
 
 /** #2601: pick the witness session when it is a fresh `|sub:` fork of the
