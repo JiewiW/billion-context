@@ -1,0 +1,375 @@
+{
+  "generatedAt": "2026-10-28T05:35:58.206Z",
+  "sessionsRoot": "<HOME>/.dsh/sessions",
+  "sessionsAnalyzed": 20,
+  "totals": {
+    "userMessages": 5951,
+    "splicedEvents": 5026,
+    "splicedEmptyEvents": 1956,
+    "splicedInsertedMessages": 3070,
+    "insertedWithoutText": 13,
+    "overlapWithUserMessage": {
+      "count": 3044,
+      "chars": 1469478,
+      "bySource": {
+        "plugin:dsh-cot-anchor": {
+          "count": 2529,
+          "chars": 1082764
+        },
+        "user": {
+          "count": 404,
+          "chars": 151946
+        },
+        "agent-instructions": {
+          "count": 5,
+          "chars": 88684
+        },
+        "goal": {
+          "count": 22,
+          "chars": 50920
+        },
+        "agent-message": {
+          "count": 10,
+          "chars": 35211
+        },
+        "tool-jobs": {
+          "count": 48,
+          "chars": 25422
+        },
+        "subagent-settled": {
+          "count": 8,
+          "chars": 21050
+        },
+        "tool-goal": {
+          "count": 2,
+          "chars": 7663
+        },
+        "plugin:dsh-derive-watcher": {
+          "count": 12,
+          "chars": 4668
+        },
+        "repeat-tool-reminder": {
+          "count": 4,
+          "chars": 1150
+        }
+      }
+    },
+    "uniqueToSpliced": {
+      "count": 13,
+      "chars": 9522,
+      "bySource": {
+        "agent-instructions": {
+          "count": 1,
+          "chars": 7413
+        },
+        "plugin:dsh-cot-anchor": {
+          "count": 5,
+          "chars": 1669
+        },
+        "user": {
+          "count": 6,
+          "chars": 241
+        },
+        "plugin:dsh-derive-watcher": {
+          "count": 1,
+          "chars": 199
+        }
+      }
+    }
+  },
+  "perSession": [
+    {
+      "session": "session-d52d2d6d-db54-4c2a-ad48-076da9bdb87f",
+      "userMessages": 1081,
+      "splicedEvents": 839,
+      "splicedEmptyEvents": 413,
+      "splicedInserted": 426,
+      "overlap": 409,
+      "unique": 4,
+      "uniqueChars": 137
+    },
+    {
+      "session": "session-dc1292b6-b6d8-40e4-a8da-1b9a6ed501f9",
+      "userMessages": 137,
+      "splicedEvents": 57,
+      "splicedEmptyEvents": 28,
+      "splicedInserted": 29,
+      "overlap": 27,
+      "unique": 2,
+      "uniqueChars": 7612
+    },
+    {
+      "session": "session-c240af43-3699-4bbd-933f-a68fbd518045",
+      "userMessages": 689,
+      "splicedEvents": 975,
+      "splicedEmptyEvents": 328,
+      "splicedInserted": 647,
+      "overlap": 647,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-72093a2d-6c92-4e0c-b1fc-b24a42c70ccc",
+      "userMessages": 275,
+      "splicedEvents": 165,
+      "splicedEmptyEvents": 82,
+      "splicedInserted": 83,
+      "overlap": 82,
+      "unique": 1,
+      "uniqueChars": 102
+    },
+    {
+      "session": "session-7ed2bf7a-15be-46ed-8350-241068931e16",
+      "userMessages": 208,
+      "splicedEvents": 73,
+      "splicedEmptyEvents": 36,
+      "splicedInserted": 37,
+      "overlap": 37,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-b8f61f25-2bf6-4fdf-9038-9ad1de916fe9",
+      "userMessages": 465,
+      "splicedEvents": 661,
+      "splicedEmptyEvents": 224,
+      "splicedInserted": 437,
+      "overlap": 437,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-63b2d8f2-93e1-4190-a32c-a9aed45a2d75",
+      "userMessages": 540,
+      "splicedEvents": 737,
+      "splicedEmptyEvents": 252,
+      "splicedInserted": 485,
+      "overlap": 482,
+      "unique": 3,
+      "uniqueChars": 959
+    },
+    {
+      "session": "session-f6e09586-aabe-48b4-a93f-3e2539beb827",
+      "userMessages": 22,
+      "splicedEvents": 7,
+      "splicedEmptyEvents": 3,
+      "splicedInserted": 4,
+      "overlap": 4,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-6117c5ca-387f-4b81-a063-d81fafe8c50f",
+      "userMessages": 179,
+      "splicedEvents": 46,
+      "splicedEmptyEvents": 23,
+      "splicedInserted": 23,
+      "overlap": 22,
+      "unique": 1,
+      "uniqueChars": 2
+    },
+    {
+      "session": "session-32d83b15-2f01-4d3d-ba08-cb82ead12a6b",
+      "userMessages": 238,
+      "splicedEvents": 273,
+      "splicedEmptyEvents": 100,
+      "splicedInserted": 173,
+      "overlap": 172,
+      "unique": 1,
+      "uniqueChars": 309
+    },
+    {
+      "session": "session-4cfa9758-7a60-4b3a-a4f8-d38c92724ee7",
+      "userMessages": 128,
+      "splicedEvents": 32,
+      "splicedEmptyEvents": 16,
+      "splicedInserted": 16,
+      "overlap": 16,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-9991f0e7-e976-4717-ad9f-1993c1abd282",
+      "userMessages": 409,
+      "splicedEvents": 569,
+      "splicedEmptyEvents": 193,
+      "splicedInserted": 376,
+      "overlap": 376,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-b2cc9dc5-2c7a-4df1-9474-fe4b677d9632",
+      "userMessages": 103,
+      "splicedEvents": 88,
+      "splicedEmptyEvents": 44,
+      "splicedInserted": 44,
+      "overlap": 44,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-6558e754-915b-49fb-878c-686b3345d596",
+      "userMessages": 14,
+      "splicedEvents": 4,
+      "splicedEmptyEvents": 2,
+      "splicedInserted": 2,
+      "overlap": 2,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-a4dfa942-9ed1-4491-a6bc-37b232ec5ad2",
+      "userMessages": 137,
+      "splicedEvents": 58,
+      "splicedEmptyEvents": 29,
+      "splicedInserted": 29,
+      "overlap": 29,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-dcad89ab-d871-4d46-9c87-64b3ee8ff2a3",
+      "userMessages": 349,
+      "splicedEvents": 246,
+      "splicedEmptyEvents": 86,
+      "splicedInserted": 160,
+      "overlap": 159,
+      "unique": 1,
+      "uniqueChars": 401
+    },
+    {
+      "session": "session-a4699a67-34e9-4abe-a9b2-832eb402d204",
+      "userMessages": 325,
+      "splicedEvents": 52,
+      "splicedEmptyEvents": 26,
+      "splicedInserted": 26,
+      "overlap": 26,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-faa84c09-0d60-49a1-8a27-1499732b0851",
+      "userMessages": 241,
+      "splicedEvents": 38,
+      "splicedEmptyEvents": 19,
+      "splicedInserted": 19,
+      "overlap": 19,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-7acba9a1-2f47-4cef-ada4-e0f78e821c19",
+      "userMessages": 288,
+      "splicedEvents": 46,
+      "splicedEmptyEvents": 22,
+      "splicedInserted": 24,
+      "overlap": 24,
+      "unique": 0,
+      "uniqueChars": 0
+    },
+    {
+      "session": "session-577385fc-cc11-4d7d-9c47-748a8f9d7e02",
+      "userMessages": 123,
+      "splicedEvents": 60,
+      "splicedEmptyEvents": 30,
+      "splicedInserted": 30,
+      "overlap": 30,
+      "unique": 0,
+      "uniqueChars": 0
+    }
+  ],
+  "uniqueSamples": [
+    {
+      "session": "session-d52d2d6d-db54-4c2a-ad48-076da9bdb87f",
+      "source": "user",
+      "role": "user",
+      "chars": 44,
+      "head": "我看见你刚才启动了游戏本体，没有加载fika。你现在是在解决这个问题吗？汇报完现状后继续"
+    },
+    {
+      "session": "session-d52d2d6d-db54-4c2a-ad48-076da9bdb87f",
+      "source": "user",
+      "role": "user",
+      "chars": 44,
+      "head": "我看见你刚才启动了游戏本体，没有加载fika。你现在是在解决这个问题吗？汇报完现状后继续"
+    },
+    {
+      "session": "session-d52d2d6d-db54-4c2a-ad48-076da9bdb87f",
+      "source": "user",
+      "role": "user",
+      "chars": 42,
+      "head": "我他妈只要一直问，你就能一直审查出问题来。给我逗笑了。傻逼。 再次审查你刚做的修补"
+    },
+    {
+      "session": "session-d52d2d6d-db54-4c2a-ad48-076da9bdb87f",
+      "source": "user",
+      "role": "user",
+      "chars": 7,
+      "head": "你怎么愣住了？"
+    },
+    {
+      "session": "session-dc1292b6-b6d8-40e4-a8da-1b9a6ed501f9",
+      "source": "agent-instructions",
+      "role": "user",
+      "chars": 7413,
+      "head": "<system-reminder> Updated instructions from: ~/.dsh/AGENTS.md This fi"
+    },
+    {
+      "session": "session-dc1292b6-b6d8-40e4-a8da-1b9a6ed501f9",
+      "source": "plugin:dsh-derive-watcher",
+      "role": "user",
+      "chars": 199,
+      "head": "<silent-resume turn=\"6\" reason=\"error\"> 上一回合因运行时错误中断：Cannot read prope"
+    },
+    {
+      "session": "session-72093a2d-6c92-4e0c-b1fc-b24a42c70ccc",
+      "source": "user",
+      "role": "user",
+      "chars": 102,
+      "head": "/mem-skill-dsh-ui-38aa0f2d6be9 雕琢一下这个技能的描述。这个技能的描述是否合适，是否范围过宽或者过窄，里面的经"
+    },
+    {
+      "session": "session-63b2d8f2-93e1-4190-a32c-a9aed45a2d75",
+      "source": "plugin:dsh-cot-anchor",
+      "role": "user",
+      "chars": 358,
+      "head": "COT anchor — conclusions established before the last tool call. Do not"
+    },
+    {
+      "session": "session-63b2d8f2-93e1-4190-a32c-a9aed45a2d75",
+      "source": "plugin:dsh-cot-anchor",
+      "role": "user",
+      "chars": 311,
+      "head": "COT anchor — conclusions established before the last tool call. Do not"
+    },
+    {
+      "session": "session-63b2d8f2-93e1-4190-a32c-a9aed45a2d75",
+      "source": "plugin:dsh-cot-anchor",
+      "role": "user",
+      "chars": 290,
+      "head": "COT anchor — conclusions established before the last tool call. Do not"
+    },
+    {
+      "session": "session-6117c5ca-387f-4b81-a063-d81fafe8c50f",
+      "source": "user",
+      "role": "user",
+      "chars": 2,
+      "head": "继续"
+    },
+    {
+      "session": "session-32d83b15-2f01-4d3d-ba08-cb82ead12a6b",
+      "source": "plugin:dsh-cot-anchor",
+      "role": "user",
+      "chars": 309,
+      "head": "COT anchor — conclusions established before the last tool call. Do not"
+    },
+    {
+      "session": "session-dcad89ab-d871-4d46-9c87-64b3ee8ff2a3",
+      "source": "plugin:dsh-cot-anchor",
+      "role": "user",
+      "chars": 401,
+      "head": "COT anchor — conclusions established before the last tool call. Do not"
+    }
+  ]
+}

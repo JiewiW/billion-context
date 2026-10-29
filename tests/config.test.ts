@@ -1,0 +1,126 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { Context } from '@deepseek-ai/cordis'
+import { createCore, defaultConfig, type CompressionCore } from 'acp-kernel'
+import { Session } from '@deepseek-ai/dsh-session'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import { kernelConfigFor, type KernelConfigInput } from '../src/config.ts'
+import { defaultCountTokens } from 'acp-kernel'
+import { buildNudge } from '../src/nudge.ts'
+import { AcpStateStore } from '../src/state.ts'
+import { resolveAcpConfig } from '../src/index.ts'
+import { buildTextSession, appendTurn, appendUser } from './helpers.ts'
+
+test('config: defaults equal the kernel (and billion-context-pi) defaults', () => {
+  const input: KernelConfigInput = { modelContextLimit: 128000 }
+  const config = kernelConfigFor(input)
+  const kernel = defaultConfig(128000)
+  assert.equal(config.nudge.minContextLimitPct, kernel.nudge.minContextLimitPct)
+  assert.equal(config.nudge.maxContextLimitPct, kernel.nudge.maxContextLimitPct)
+  assert.equal(config.nudge.emergencyThresholdPct, kernel.nudge.emergencyThresholdPct)
+  assert.equal(config.nudge.growthRatio, kernel.nudge.growthRatio)
+  // These are the values billion-context-pi ships (kernel defaults, unmodified).
+  assert.equal(config.nudge.minContextLimitPct, 0.45)
+  assert.equal(config.nudge.maxContextLimitPct, 0.75)
+  assert.equal(config.nudge.emergencyThresholdPct, 0.95)
+})
+
+test('config: explicit nudge thresholds override without dropping other defaults', () => {
+  const config = kernelConfigFor({
+    modelContextLimit: 128000,
+    nudgeMinContextLimitPct: 0.2,
+    nudgeEmergencyThresholdPct: 0.6,
+  })
+  assert.equal(config.nudge.minContextLimitPct, 0.2)
+  assert.equal(config.nudge.emergencyThresholdPct, 0.6)
+  // Unspecified knobs keep their kernel defaults (merged, not replaced).
+  assert.equal(config.nudge.maxContextLimitPct, 0.75)
+  assert.equal(config.nudge.growthRatio, 0.05)
+  assert.equal(config.nudge.frequency, 5)
+})
+
+test('config: coreOverrides pass through (billion-context-pi escape hatch)', () => {
+  const config = kernelConfigFor({
+    modelContextLimit: 128000,
+    coreOverrides: { preserveRecentMessages: 3 },
+  })
+  assert.equal(config.preserveRecentMessages, 3)
+})
+
+function fakeAgent(session: import('@deepseek-ai/dsh-session').Session): Agent {
+  return {
+    id: session.id,
+    session,
+    options: { provider: 'test-provider', model: 'test-model' },
+    ctx: new Context(),
+  } as unknown as Agent
+}
+
+function envOf(extra: Partial<KernelConfigInput>) {
+  return {
+    kernel: createCore({}) as CompressionCore,
+    store: new AcpStateStore(),
+    modelContextLimit: 128000,
+    // userVerbatimKeep: 1 —— 只保护最新一条 user（本用例写作时的语义）。
+    // bigSession 的 12 条消息全是 user：不设就是内核默认 0，全部受保护、无内容可压。
+    userVerbatimKeep: 1,
+    ...extra,
+  }
+}
+
+/** 12 large messages ≈ 60K estimated tokens, compressible content well over the kernel threshold. */
+function bigSession(): Session {
+  const session = Session.create('big-session')
+  appendTurn(session, 1)
+  const text = 'JWT access tokens with fifteen minute expiry and refresh tokens stored in Redis with thirty day TTL. '.repeat(600)
+  for (let index = 0; index < 12; index += 1) {
+    appendUser(session, `${text} [msg ${index}]`)
+  }
+  return session
+}
+
+test('config: a lowered over-limit threshold triggers the nudge', () => {
+  // bigSession ≈ 182K estimated tokens against a 300K limit ≈ 61% usage.
+  // Kernel >= 0.0.54 firstSightMassReady: a FRESH nudge state (never shown,
+  // no baseline) whose usage is already >= minContextLimitPct (kernel default
+  // 0.45) with mass-ready pending content fires immediately — so the default
+  // path now fires here too (on 0.0.29 it was growth-gated and returned null).
+  // Each buildNudge call gets its own lastNudgeTurn map: the per-turn dedup
+  // would otherwise let the first fire suppress the second.
+  const session = bigSession()
+  const agent = fakeAgent(session)
+
+  const withDefaults = buildNudge(agent, envOf({ modelContextLimit: 300000 }), new Map(), new Map())
+  assert.ok(withDefaults !== null, '61% fresh usage is mass-ready under kernel firstSight')
+  assert.equal(withDefaults!.emergency, false)
+
+  const withLowMax = buildNudge(
+    agent,
+    envOf({ modelContextLimit: 300000, nudgeMaxContextLimitPct: 0.5 }),
+    new Map(),
+    new Map(),
+  )
+  assert.ok(withLowMax !== null, 'lowering the over-limit threshold to 50% forces the nudge')
+  assert.equal(withLowMax!.emergency, false)
+})
+
+test('config: engine defaults lower the nudge thresholds to 0.70/0.85', () => {
+  // The engine ships 0.70/0.85 (down from the kernel/billion-context-pi
+  // 0.75/0.95) so the forced nudge fires before the host's compaction-basic
+  // 80% line and the model keeps room to act. Explicit values win.
+  const defaults = resolveAcpConfig({})
+  assert.equal(defaults.nudgeMaxContextLimitPct, 0.7)
+  assert.equal(defaults.nudgeEmergencyThresholdPct, 0.85)
+
+  const explicit = resolveAcpConfig({ nudgeMaxContextLimitPct: 0.6, nudgeEmergencyThresholdPct: 0.9 })
+  assert.equal(explicit.nudgeMaxContextLimitPct, 0.6)
+  assert.equal(explicit.nudgeEmergencyThresholdPct, 0.9)
+})
+
+test('config: token estimation is CJK-aware (1 char/token) not 4-char flat', () => {
+  // The kernel's defaultCountTokens counts CJK at 1 char per token and
+  // everything else at 4 chars per token — the fix for the flat estimate.
+  assert.equal(defaultCountTokens('中'.repeat(100)), 100, '100 CJK chars = 100 tokens')
+  assert.equal(defaultCountTokens('a'.repeat(100)), 25, '100 ascii chars = 25 tokens')
+  assert.equal(defaultCountTokens('中'.repeat(50) + 'a'.repeat(40)), 60, 'mixed CJK+ascii')
+})

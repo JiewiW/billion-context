@@ -1,0 +1,330 @@
+{
+  "sessions": [
+    {
+      "session": "session-d52d2d6d-db54-4c2a-ad48-076da9bdb87f",
+      "mb": 18.8,
+      "frames": 12770,
+      "failures": 0,
+      "rows": 1071,
+      "byProv": {
+        "user-turn": 178,
+        "host-policy": 520,
+        "host-content": 372,
+        "relay": 1
+      },
+      "oldWronglyUser": 893,
+      "gatedRows": 447,
+      "gatedWrong": 287
+    },
+    {
+      "session": "session-dc1292b6-b6d8-40e4-a8da-1b9a6ed501f9",
+      "mb": 5.7,
+      "frames": 1002,
+      "failures": 0,
+      "rows": 136,
+      "byProv": {
+        "user-turn": 7,
+        "host-policy": 55,
+        "host-content": 59,
+        "checkpoint": 12,
+        "relay": 3
+      },
+      "oldWronglyUser": 129,
+      "gatedRows": 22,
+      "gatedWrong": 15
+    },
+    {
+      "session": "session-c240af43-3699-4bbd-933f-a68fbd518045",
+      "mb": 4.4,
+      "frames": 2617,
+      "failures": 0,
+      "rows": 688,
+      "byProv": {
+        "user-turn": 4,
+        "host-policy": 655,
+        "host-content": 29
+      },
+      "oldWronglyUser": 684,
+      "gatedRows": 300,
+      "gatedWrong": 296
+    },
+    {
+      "session": "session-72093a2d-6c92-4e0c-b1fc-b24a42c70ccc",
+      "mb": 4.4,
+      "frames": 2554,
+      "failures": 0,
+      "rows": 274,
+      "byProv": {
+        "user-turn": 22,
+        "host-policy": 102,
+        "host-content": 140,
+        "checkpoint": 10
+      },
+      "oldWronglyUser": 252,
+      "gatedRows": 86,
+      "gatedWrong": 64
+    },
+    {
+      "session": "session-7ed2bf7a-15be-46ed-8350-241068931e16",
+      "mb": 4.3,
+      "frames": 2958,
+      "failures": 0,
+      "rows": 208,
+      "byProv": {
+        "user-turn": 14,
+        "host-policy": 130,
+        "host-content": 63,
+        "relay": 1
+      },
+      "oldWronglyUser": 194,
+      "gatedRows": 73,
+      "gatedWrong": 60
+    },
+    {
+      "session": "session-b8f61f25-2bf6-4fdf-9038-9ad1de916fe9",
+      "mb": 3.8,
+      "frames": 2445,
+      "failures": 0,
+      "rows": 465,
+      "byProv": {
+        "user-turn": 1,
+        "host-policy": 444,
+        "host-content": 20
+      },
+      "oldWronglyUser": 464,
+      "gatedRows": 185,
+      "gatedWrong": 185
+    },
+    {
+      "session": "session-63b2d8f2-93e1-4190-a32c-a9aed45a2d75",
+      "mb": 3.8,
+      "frames": 2376,
+      "failures": 0,
+      "rows": 540,
+      "byProv": {
+        "user-turn": 18,
+        "host-policy": 484,
+        "host-content": 38
+      },
+      "oldWronglyUser": 522,
+      "gatedRows": 236,
+      "gatedWrong": 220
+    },
+    {
+      "session": "session-f6e09586-aabe-48b4-a93f-3e2539beb827",
+      "mb": 3.8,
+      "frames": 6706,
+      "failures": 0,
+      "rows": 22,
+      "byProv": {
+        "user-turn": 1,
+        "host-policy": 8,
+        "host-content": 13
+      },
+      "oldWronglyUser": 21,
+      "gatedRows": 3,
+      "gatedWrong": 3
+    },
+    {
+      "session": "session-6117c5ca-387f-4b81-a063-d81fafe8c50f",
+      "mb": 3.3,
+      "frames": 1881,
+      "failures": 0,
+      "rows": 170,
+      "byProv": {
+        "user-turn": 9,
+        "host-policy": 39,
+        "host-content": 119,
+        "checkpoint": 3
+      },
+      "oldWronglyUser": 161,
+      "gatedRows": 19,
+      "gatedWrong": 10
+    },
+    {
+      "session": "session-32d83b15-2f01-4d3d-ba08-cb82ead12a6b",
+      "mb": 3.2,
+      "frames": 1589,
+      "failures": 0,
+      "rows": 229,
+      "byProv": {
+        "user-turn": 9,
+        "host-policy": 183,
+        "host-content": 37
+      },
+      "oldWronglyUser": 220,
+      "gatedRows": 91,
+      "gatedWrong": 86
+    },
+    {
+      "session": "session-4cfa9758-7a60-4b3a-a4f8-d38c92724ee7",
+      "mb": 3.1,
+      "frames": 1115,
+      "failures": 0,
+      "rows": 127,
+      "byProv": {
+        "user-turn": 11,
+        "host-policy": 25,
+        "host-content": 85,
+        "checkpoint": 6
+      },
+      "oldWronglyUser": 116,
+      "gatedRows": 17,
+      "gatedWrong": 6
+    },
+    {
+      "session": "session-9991f0e7-e976-4717-ad9f-1993c1abd282",
+      "mb": 3,
+      "frames": 1665,
+      "failures": 0,
+      "rows": 409,
+      "byProv": {
+        "user-turn": 2,
+        "host-policy": 384,
+        "host-content": 23
+      },
+      "oldWronglyUser": 407,
+      "gatedRows": 135,
+      "gatedWrong": 134
+    },
+    {
+      "session": "session-b2cc9dc5-2c7a-4df1-9474-fe4b677d9632",
+      "mb": 3,
+      "frames": 2855,
+      "failures": 0,
+      "rows": 101,
+      "byProv": {
+        "user-turn": 14,
+        "host-policy": 51,
+        "host-content": 36
+      },
+      "oldWronglyUser": 87,
+      "gatedRows": 46,
+      "gatedWrong": 32
+    },
+    {
+      "session": "session-6558e754-915b-49fb-878c-686b3345d596",
+      "mb": 2.8,
+      "frames": 5152,
+      "failures": 0,
+      "rows": 14,
+      "byProv": {
+        "user-turn": 1,
+        "host-policy": 4,
+        "host-content": 9
+      },
+      "oldWronglyUser": 13,
+      "gatedRows": 1,
+      "gatedWrong": 1
+    },
+    {
+      "session": "session-a4dfa942-9ed1-4491-a6bc-37b232ec5ad2",
+      "mb": 2.7,
+      "frames": 1709,
+      "failures": 0,
+      "rows": 137,
+      "byProv": {
+        "user-turn": 10,
+        "host-policy": 85,
+        "host-content": 42
+      },
+      "oldWronglyUser": 127,
+      "gatedRows": 34,
+      "gatedWrong": 25
+    },
+    {
+      "session": "session-dcad89ab-d871-4d46-9c87-64b3ee8ff2a3",
+      "mb": 2.7,
+      "frames": 1493,
+      "failures": 0,
+      "rows": 349,
+      "byProv": {
+        "user-turn": 6,
+        "host-policy": 317,
+        "host-content": 26
+      },
+      "oldWronglyUser": 343,
+      "gatedRows": 129,
+      "gatedWrong": 124
+    },
+    {
+      "session": "session-a4699a67-34e9-4abe-a9b2-832eb402d204",
+      "mb": 2.7,
+      "frames": 1562,
+      "failures": 0,
+      "rows": 324,
+      "byProv": {
+        "user-turn": 13,
+        "host-policy": 269,
+        "host-content": 39,
+        "relay": 3
+      },
+      "oldWronglyUser": 311,
+      "gatedRows": 25,
+      "gatedWrong": 14
+    },
+    {
+      "session": "session-faa84c09-0d60-49a1-8a27-1499732b0851",
+      "mb": 2.7,
+      "frames": 1521,
+      "failures": 0,
+      "rows": 240,
+      "byProv": {
+        "user-turn": 9,
+        "host-policy": 200,
+        "host-content": 31
+      },
+      "oldWronglyUser": 231,
+      "gatedRows": 66,
+      "gatedWrong": 57
+    },
+    {
+      "session": "session-7acba9a1-2f47-4cef-ada4-e0f78e821c19",
+      "mb": 2.6,
+      "frames": 2408,
+      "failures": 0,
+      "rows": 284,
+      "byProv": {
+        "user-turn": 20,
+        "host-policy": 220,
+        "host-content": 44
+      },
+      "oldWronglyUser": 264,
+      "gatedRows": 52,
+      "gatedWrong": 32
+    },
+    {
+      "session": "session-577385fc-cc11-4d7d-9c47-748a8f9d7e02",
+      "mb": 2.6,
+      "frames": 1095,
+      "failures": 0,
+      "rows": 120,
+      "byProv": {
+        "user-turn": 13,
+        "host-policy": 81,
+        "host-content": 26
+      },
+      "oldWronglyUser": 107,
+      "gatedRows": 41,
+      "gatedWrong": 28
+    }
+  ],
+  "totals": {
+    "sessions": 20,
+    "rows": 5908,
+    "chars": 10971654,
+    "byProvenance": {
+      "user-turn": 362,
+      "host-policy": 4256,
+      "host-content": 1251,
+      "relay": 8,
+      "checkpoint": 31
+    },
+    "unknownProvenance": 0,
+    "oldWronglyUser": 5546,
+    "oldWronglyUserPct": 93.9,
+    "gatedRows": 2008,
+    "gatedWrong": 1679,
+    "gatedWrongPct": 83.6
+  }
+}

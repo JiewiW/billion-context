@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Daily backstop: verify main's committed dist still matches the source
+    # even when nothing merged recently (catches a broken dist-bot workflow).
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Node 22, not 20: the durable-row admission net (issue #183) loads
+          # the released JSONL persistence codec, which statically imports the
+          # node:zlib zstd API that only exists from Node 22.15 on — on Node 20
+          # the module fails at link time before any test runs. e2e.yml already
+          # ran on 22; the package's own support floor (engines >= 20) is
+          # unchanged, this is only the test-runner runtime.
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # `dist/` is committed so git-source installs work without a build step
+      # (pnpm blocks dependency build scripts by default). Rebuild here and
+      # fail if the committed artifacts differ from what the current source
+      # produces — otherwise git installs would silently get stale code.
+      #
+      # The dist-bot (.github/workflows/dist-bot.yml) keeps main's dist
+      # fresh: after every merge that can change the build output it
+      # rebuilds and pushes one dist commit directly to main. PR branches
+      # intentionally carry whatever dist main last had — contributors
+      # never touch dist. This check therefore does NOT gate PRs: it
+      # backstops main only, daily on a schedule and on the bot's own
+      # dist commits (e.g. catching a broken bot workflow).
+      #
+      # This comparison assumes deterministic builds across platforms: the
+      # committed dist/ is built locally (macOS) while CI rebuilds on
+      # ubuntu-latest. It holds because the toolchain is lockfile-pinned
+      # (typescript / tsup / esbuild, acp-kernel inlined) and the
+      # sourcemap carries relative paths only. If a future toolchain change
+      # introduces platform-dependent bytes or CRLF output, this check will
+      # false-positive — treat that as a build-determinism regression to
+      # investigate, not as stale artifacts.
+      - name: Check committed dist matches the source
+        if: github.event_name == 'schedule' || github.actor == 'github-actions[bot]'
+        run: |
+          if [ -n "$(git status --porcelain -- dist)" ]; then
+            echo '::error::dist/ drifted from source — the dist-bot should have refreshed it after the last merge; check its workflow runs'
+            git status --short -- dist
+            exit 1
+          fi
