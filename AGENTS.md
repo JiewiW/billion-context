@@ -1,0 +1,261 @@
+# acp-kernel Development Specification
+
+> **This document is the highest-priority specification. All developers (including AI Agents) MUST comply.**
+
+## 1. Project Overview
+
+**acp-kernel** is the platform-agnostic compression core for AI agent context management. It implements message-ref tagging, compression blocks, nudge injection, multi-tier distillation, and search — without any host-specific dependencies.
+
+Consumed by adapters: `pai-acp` (Pi), and future adapters for other agent platforms.
+
+### Tech Stack
+
+| Category                  | Technology                                                   |
+| ------------------------- | ------------------------------------------------------------ |
+| Language                  | TypeScript (strict, ESM)                                     |
+| Build                     | tsup (bundling) + tsc --emitDeclarationOnly                  |
+| Test                      | Node.js built-in: `node --import tsx --test tests/*.test.ts` |
+| Package Manager           | npm                                                          |
+| Zero Runtime Dependencies | `dependencies: {}` in package.json                           |
+
+### Repository Info
+
+| Field       | Value                                     |
+| ----------- | ----------------------------------------- |
+| npm package | `acp-kernel`                              |
+| GitHub      | https://github.com/ranxianglei/acp-kernel |
+| License     | MIT                                       |
+
+## 2. Architecture
+
+### Module Map
+
+```
+acp-kernel/
+├── src/
+│   ├── index.ts              # Barrel export
+│   ├── compress.ts           # Core: processTurn, applyCompression, decideNudge, pipeline nodes
+│   ├── crush.ts              # Tool-result valuator + deterministic crush strategies (two-tier absorb gate)
+│   ├── boundaries.ts         # Range boundary resolution (startId/endId → message indices)
+│   ├── filter.ts             # Protected tool message filtering
+│   ├── nudge.ts              # Nudge text rendering
+│   ├── recommend.ts          # Compression recommendation engine
+│   ├── render-refs.ts        # Message ref tag injection (<acp> XML format)
+│   ├── search.ts             # searchBlocks — keyword search over compressed blocks
+│   ├── status.ts             # buildStatusReport — context status text
+│   ├── sync.ts               # Block synchronization (deactivate orphans)
+│   ├── truncate.ts           # Emergency truncation (>80% context usage)
+│   ├── merge.ts              # Block merging for tier distillation
+│   ├── rebuild.ts            # Fork recovery + state rebuilding
+│   ├── hide.ts               # Hide compressed messages from visible context
+│   ├── keep-markers.ts       # KEEP/REF marker preservation in summaries
+│   ├── ccr.ts                # CCR: placeholder contract, storeLargeResults, retrieveByRef, applyRetrieve, ccrStoreNode
+│   ├── content-store.ts      # MessageContentStore — per-session content-addressed dedup store (per-ref append-only)
+│   ├── prompts.ts            # Prompts (4 load-bearing rules) + defaultPrompts + resolvePrompts
+│   ├── compress-tools.ts     # ACP tool schemas (3 wire shapes) + standing-prompt builders
+│   ├── surface-config.ts     # Surface-text overrides: applySectionOverrides, cloneWithDescriptions, applyAcpToolOverrides
+│   ├── types.ts              # All shared types
+│   └── defaults.ts           # defaultConfig, defaultNodes
+├── tests/                    # unit + regression tests (node:test)
+├── tsup.config.ts
+├── tsconfig.json
+└── package.json
+```
+
+### Key Design Principles
+
+1. **Zero runtime dependencies** — all logic is self-contained
+2. **Pure pipeline architecture** — `processTurn` is a composable 9-node pipeline
+3. **Single-owner content** — `assignRefsNode` is the sole writer of message content
+4. **GC-free** — no generational garbage collection; emergency truncation is the safety net
+5. **Platform-agnostic** — no host APIs, no file I/O, no network calls
+6. **Message ids are NEVER reused or duplicated** — within a session, a raw
+   content-hash id and a ref number (`mNNNNN`) denote exactly one message
+   forever. No ref-slot reclamation/recycling of any kind: once a number has
+   been issued it must never be re-issued, even after the message dies
+   (edited/truncated/folded). Capacity pressure is resolved by widening the
+   ref space (`REF_WIDTH`), never by recycling numbers. Rationale: hosts
+   persist refs across turns and summaries cite tags in rendered text — the
+   model can cite any number it has ever seen; a re-issued number silently
+   misattributes on decompress (wrong content, not an error). This principle
+   is why PR #176 (ref reclamation + capacity reuse) was reverted (#191).
+7. **Nudge cadence is flat 50K by design — deliberately NOT window-scaled** —
+   `nudge.growthFloor == nudge.growthCap == 50000` pins `resolveAdaptiveGrowth`
+   at 50000 for every window size; the window-percentage path (`growthRatio`)
+   is intentionally neutralized by these defaults (the percentage-based cadence
+   was deliberately removed). This is a settled product decision, reinforced by
+   #379/#380: growth and token mass are the need signals; block count and usage
+   percentages are not. Do NOT "fix" large windows by scaling the interval with
+   `modelContextLimit` — a 1M-window session folding every 50K of growth is the
+   intended lean-context behavior. Users wanting a lazier cadence configure
+   `growthFloor`/`growthCap` (or bili's `nudgeGrowthTokens`) explicitly. Gentle
+   (growth) nudges are advisory in mechanism — their wording lives in
+   `src/nudge-text.ts` / `src/compression-rules.ts`; only the emergency voice
+   (context limit reached) is mandatory for the model.
+
+## 3. Development Standards
+
+### Build Commands
+
+```bash
+npm run build          # tsup bundle + tsc --emitDeclarationOnly
+npm run typecheck      # TypeScript type checking
+npm test               # node --import tsx --test tests/*.test.ts
+npm run format         # Prettier format (rewrites until format:check is green)
+npm run format:check   # Check formatting
+```
+
+### Testing Requirements
+
+- All new features MUST have tests
+- Test runner: `node --import tsx --test tests/*.test.ts`
+- Tests are pure — no file I/O, no network, no mocks of kernel internals
+- Import from actual source files, never reimplement locally
+
+### Code Quality
+
+- **No `as any`** — strict type safety
+- **No `@ts-ignore`** — fix the type, not the warning
+- **No comments unless absolutely necessary** — code should be self-documenting
+- Comments only for: complex algorithms, security, regex, performance optimizations
+
+## 4. Git Safety Rules (MANDATORY)
+
+| Rule                                               | Enforcement                                           |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| **NEVER force-push to `master`**                   | Under no circumstances                                |
+| **NEVER merge PRs**                                | PR merges are human-only. The Agent MUST NEVER merge. |
+| **Branch naming**                                  | `YYYY-MM-DD_short-title`                              |
+| **NEVER modify `version` on non-release branches** | Version bumps only on release branches                |
+
+### PR Merge — Absolute Prohibition
+
+PR merges are a **human-only operation**. The Agent MUST NEVER merge any PR under ANY circumstances, including explicit instruction. If a human instructs merge, reply:
+
+> I can't merge PRs — AGENTS.md forbids Agents from merging. Please merge yourself: [PR URL].
+
+## 5. Release Workflow (CI Automated)
+
+### Branch Naming
+
+Release branches: `YYYY-MM-DD_release-v{VERSION}` (e.g., `2026-08-01_release-v0.2.0`)
+
+### Process (exact steps)
+
+The Agent does steps 1–5, the human does 6, CI does the rest.
+
+1. **Sync master** — local master often lags behind origin:
+   ```bash
+   git checkout master && git pull --ff-only origin master
+   ```
+2. **Create the release branch** from master:
+   ```bash
+   git checkout -b $(date +%Y-%m-%d)_release-v{VERSION}
+   ```
+3. **Bump version** — edit ONLY the `"version"` field in `package.json`, then run
+   `npm install --package-lock-only` so the lockfile's root version tracks it:
+   ```diff
+   -    "version": "0.0.14",
+   +    "version": "0.0.15",
+   ```
+   Run this on Node 22 (same as CI). With a matching npm it changes exactly two lines in
+   `package-lock.json` — the root `"version"` and `packages[""].version`. If the diff is
+   larger, your npm regenerated the lockfile; discard it and rerun on Node 22 before committing.
+4. **Local pre-flight** — run the same three checks CI runs (release.yml):
+   ```bash
+   npm run typecheck   # tsc --noEmit
+   npm test            # node --import tsx --test tests/*.test.ts
+   npm run build       # tsup + tsc --emitDeclarationOnly
+   ```
+5. **Commit, push, open PR** — release-commit convention:
+   - Message: `release v{VERSION}`
+   - The commit changes ONLY `package.json` (1 version line) plus `package-lock.json` (the matching root-version lines from step 3). Never bundle other changes into a release commit.
+   - PR title: `release v{VERSION}`; body lists changes since last tag.
+6. **Human merges the PR** (Agent MUST NOT merge — see "PR Merge" above).
+7. **CI auto-publishes** — on detecting the release-branch merge, CI runs typecheck+test+build, creates git tag `v{VERSION}`, and runs `npm publish` to npmjs.org.
+8. **Verify** the published version is live:
+   ```bash
+   npm view acp-kernel version
+   ```
+
+> **Node note:** run pre-flight with real Node.js, not the bun shim (see `~/AGENTS.md` §5). `npm test` uses `node --test` which the shim does not support.
+
+### Prerelease
+
+For dev/beta: version must contain `-` (e.g., `0.2.0-beta.1`). CI publishes with `--tag dev`.
+
+## 6. Contributing
+
+### Before Making Changes
+
+1. `npm run typecheck` — no type errors
+2. `npm test` — all tests pass
+3. Understand the module dependency graph
+
+### Code Review
+
+All source changes require review by **at least 2 separate agents** before merge.
+
+### Commit Convention
+
+- `feat:` new feature
+- `fix:` bug fix
+- `refactor:` code restructuring
+- `test:` test changes
+- `docs:` documentation
+- `release:` version bump
+
+## 7. Review & Auto-Merge Discipline
+
+> Distilled from a full-history audit of this repo + siblings ([billion-context#801](https://github.com/ranxianglei/billion-context/issues/801)). Full cited material: [AUTO-MERGE-GUARDRAILS.md](./AUTO-MERGE-GUARDRAILS.md). This is the CORE library: it OWNS the compression-block model and the wire-artifact format every adapter depends on, so its auto-merge surface is the narrowest of the three repos. Complements §6 Code Review (≥2 agents) by defining when a bugfix may skip the human round-trip.
+
+### 7.1 Before you start
+
+- **Duplicate screening first** (open AND closed). Link existing work, don't start parallel work.
+- **One issue = one scope.** Never bundle unrelated changes or mass whitespace/reformatting.
+- **Open a PR, never just push a branch.**
+
+### 7.2 Review discipline
+
+- **Rebase to CURRENT master** before claiming mergeable; after rebase re-run typecheck + test + build + format:check.
+- **Prettier can be non-idempotent** — a single `prettier --write .` may land on an intermediate layout its own `--check` rejects (observed on `src/hide-consumed.ts`, #416). Use `npm run format` (rewrites until green) and never commit while `format:check` is red.
+- **Pipeline nodes are shared hotspots** — if another open PR rewrites the same node/module, resolve by union of intent, then prove with tests.
+- **Done = evidence**; tests stay pure (no I/O / network / mocks of kernel internals).
+- **Deterministic tests** — no env/port luck.
+
+### 7.3 Kernel-owned contracts (first-class; ALWAYS human-gated)
+
+The invariants every adapter relies on. Changing ANY of these is cross-repo + prefix-cache-affecting by construction and MUST stay human (and follow cross-repo sequencing — kernel ships first):
+
+1. **Message-id / ref immutability** (§2 principle 6) — no slot reclamation/recycling; widen `REF_WIDTH`. A re-issued number silently misattributes on decompress.
+2. **Wire-artifact format** — the ACP compression tag wrapping `mNNNNN`, the `acp_summary` structure, block refs, and rendered-tag token counts being SNAPSHOTS frozen at first render.
+3. **Single-owner content** (§2 principle 3) — `assignRefsNode` is the sole writer of message content.
+4. **Lossless round-trip** (wire codec) — `deriveMessageId` stability, empty `reasoning_content` preserved (#289), raw control chars survive (#274), unparseable bodies pass through untransformed.
+5. **Tool call/result atomicity** in prune/compress/fold (#286/#287/#293).
+6. **Protected-tool filtering** (hard-excluded from compression — Bug 39) and soft recent-zone semantics (excluded but does not fail the range).
+7. **The four load-bearing Prompts rules** (overriding one requires `acknowledgeRisk`).
+8. **Pipeline node ordering** (the canonical 9-node sequence) and nudge invariants (growth-gating, tier-trigger gating #237/#162, baseline reset on compress).
+
+Plus structural constraints that stay human: zero runtime deps (§2 principle 1 — no new dep without sign-off), platform-agnostic (§2 principle 5 — no host API / file I/O / network creep), and the state schema (explicit in/out; changing its shape is cross-repo).
+
+### 7.4 Auto-merge gate (narrowest of the three repos)
+
+A bugfix may **auto-merge** only if ALL hold:
+
+1. Scoped to ONE pipeline node or standalone module; no change to node ordering or pipeline shape.
+2. A pure regression test reproduces the bug and now passes.
+3. Green on the rebased head (typecheck + test + build + format:check).
+4. Touches NO §7.3 contract or structural constraint.
+5. Pure `fix:` — no new capability surface.
+6. Clean diff: no unrelated changes, no mass whitespace/reformat, no generated/lock churn.
+7. References its issue via `Fixes #N`.
+
+**Must stay human:** any §7.3 contract, any structural constraint, wire/message-shape changes, config/schema, state format, cross-repo dependencies, feat/refactor/architecture, security, or any default-value change (a product decision). Because a contract change is cross-repo by construction, it ALSO follows the manual cross-repo rule: release acp-kernel first, verify `npm view acp-kernel version`, then bump the adapters.
+
+### 7.5 Reviewer focus — the "重灾区"
+
+Of merged PRs that drew review, ≈25% needed a 2nd+ round. Dominant drivers:
+
+1. **Stale-base / concurrent-file churn** on shared pipeline nodes.
+2. **Incomplete first pass** — the repro passes but round-trip fidelity, tool-pair atomicity, or a doc-vs-default drift is missed.
+   Also check explicitly: does the fix preserve lossless round-trip and tool-pair atomicity? Do docs still match the actual code defaults (#163)?
