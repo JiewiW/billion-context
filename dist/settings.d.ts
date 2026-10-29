@@ -34,7 +34,7 @@ import z from '@deepseek-ai/schemastery';
  */
 export declare const ACP_SETTINGS_NAMESPACE = "compaction-acp";
 /** The six knobs exposed to the runtime settings layer. Order defines /acp-prune config listing order. */
-export declare const SETTINGS_KEYS: readonly ['modelContextLimit', 'autoModelContextLimit', 'nudgeMinContextLimitPct', 'nudgeMaxContextLimitPct', 'nudgeEmergencyThresholdPct', 'autoNudge'];
+export declare const SETTINGS_KEYS: readonly ['modelContextLimit', 'autoModelContextLimit', 'nudgeMinContextLimitPct', 'nudgeMaxContextLimitPct', 'nudgeEmergencyThresholdPct', 'autoNudge', 'userVerbatimKeep'];
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
 /** Resolved shape of one settings snapshot — what every consumer read returns. */
 export interface AcpSettings {
@@ -46,6 +46,12 @@ export interface AcpSettings {
     readonly nudgeMaxContextLimitPct: number;
     readonly nudgeEmergencyThresholdPct: number;
     readonly autoNudge: boolean;
+    /**
+     * 用户消息原文保留条数。0（引擎默认，与内核 `defaultConfig` 镜像）= 方案 A：
+     * 全部 user 消息原文保留，永不进压缩范围；N>0 = 方案 B 逃生阀：只保留最近 N 条，
+     * 更老的允许进 T3（仍须过引用保真门）。与 `preserveRecentMessages` 不同轴。
+     */
+    readonly userVerbatimKeep?: number;
 }
 /** Input shape (everything optional — omitted keys fall back to defaults). */
 export type AcpSettingsInput = Partial<AcpSettings>;
@@ -59,6 +65,17 @@ export declare const SETTING_DEFAULTS: {
     readonly nudgeMaxContextLimitPct: 0.7;
     readonly nudgeEmergencyThresholdPct: 0.85;
     readonly autoNudge: true;
+    /**
+     * 宿主默认走**方案 B 逃生阀**（最近 12 条 user 原文保留，更老的允许进 T3）。
+     *
+     * 与内核 `defaultConfig.userVerbatimKeep = 0`（方案 A）**刻意不同层**：
+     * - 内核层默认 0 —— RL-6 要求内核默认即方案 A，内核自身不得替使用方做取舍；
+     * - 宿主层默认 12 —— 宿主的压缩单元是「会话跨度」，而真实跨度天然包含旧 user 轮。
+     *   若宿主也取 0，任何含 user 轮的跨度都会被内核硬拒，压缩能力直接归零
+     *   （2026-10-27 实测：bcdsh 从 404 pass 掉到 73 fail）。
+     * 12 是计划书给的暂定起点，修订触发：TASK-5 引用保真门的回归数据。
+     */
+    readonly userVerbatimKeep: 12;
 };
 /**
  * The subset of `AcpConfig` the settings layer may see. Declared structurally
@@ -72,6 +89,7 @@ export interface AcpSettingsCompositionEntry {
     readonly nudgeMaxContextLimitPct?: number;
     readonly nudgeEmergencyThresholdPct?: number;
     readonly autoNudge?: boolean;
+    readonly userVerbatimKeep?: number;
 }
 /**
  * Filter a composition-row config down to the settings-known scalar keys.
@@ -116,6 +134,7 @@ export declare const AcpSettingsSchema: z<Schemastery.ObjectS<NoInfer<{
     nudgeMaxContextLimitPct: z<number, number, "defined">;
     nudgeEmergencyThresholdPct: z<number, number, "defined">;
     autoNudge: z<boolean, boolean, "defined">;
+    userVerbatimKeep: z<number, number, "plain">;
 }>>, Schemastery.ObjectT<NoInfer<{
     modelContextLimit: z<number, number, "plain">;
     autoModelContextLimit: z<boolean, boolean, "defined">;
@@ -123,6 +142,7 @@ export declare const AcpSettingsSchema: z<Schemastery.ObjectS<NoInfer<{
     nudgeMaxContextLimitPct: z<number, number, "defined">;
     nudgeEmergencyThresholdPct: z<number, number, "defined">;
     autoNudge: z<boolean, boolean, "defined">;
+    userVerbatimKeep: z<number, number, "plain">;
 }>>, "plain">;
 /**
  * The engine's static config schema — the class-level `Config` the host
@@ -145,6 +165,7 @@ export declare const AcpPluginConfigSchema: z<Schemastery.ObjectS<NoInfer<{
     nudgeMaxContextLimitPct: z<number, number, "plain">;
     nudgeEmergencyThresholdPct: z<number, number, "plain">;
     autoNudge: z<boolean, boolean, "plain">;
+    userVerbatimKeep: z<number, number, "plain">;
 }>>, Schemastery.ObjectT<NoInfer<{
     modelContextLimit: z<number, number, "plain">;
     autoModelContextLimit: z<boolean, boolean, "plain">;
@@ -152,6 +173,7 @@ export declare const AcpPluginConfigSchema: z<Schemastery.ObjectS<NoInfer<{
     nudgeMaxContextLimitPct: z<number, number, "plain">;
     nudgeEmergencyThresholdPct: z<number, number, "plain">;
     autoNudge: z<boolean, boolean, "plain">;
+    userVerbatimKeep: z<number, number, "plain">;
 }>>, "plain">;
 /** What changed between two settings snapshots, and what the engine must do about it. */
 export interface SettingsChangeEffect {

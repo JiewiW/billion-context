@@ -216,6 +216,12 @@ export interface SeqCompressibleRange {
     readonly images: number;
     /** File blocks reachable inside the span. */
     readonly files: number;
+    /**
+     * TASK-10：span 内**用户发言**条数（来源标签为 user-turn / user-material）。
+     * 用于范围表的成分标注。不是 `count` 减去工具数 —— 宿主注入行也是 user 角色，
+     * 按角色算会把它们数成用户发言（这正是本轮要修的那类误判）。
+     */
+    readonly userTurns: number;
 }
 /**
  * Per-seq provider-anchored price for non-text blocks (see `mediaPriceViaMeter`
@@ -357,6 +363,16 @@ export interface KernelRangeView {
         readonly byRef: Readonly<Record<string, string>>;
     };
 }
+/**
+ * `byRaw` 里取一个「可用的」内核 ref：`BLOCKED` 视同不存在。
+ *
+ * 内核把受保护的 user 消息标成 `BLOCKED_REF`（TASK-2 的原文保护、媒体 payload、
+ * 受保护工具），它不是合法边界：把它当 startRef/endRef 交给
+ * `applyCompression` 只会得到 `Invalid boundary ref(s)`。宿主这一侧必须和内核对
+ * 齐——遇到 BLOCKED 就往内层跳过（内核 `boundaries.ts` 的 snapping 也是这么做的），
+ * 绝不能当作「没分配过 ref」而放弃整段。
+ */
+export declare function liveRefOf(byRaw: Readonly<Record<string, string>>, key: string): string | undefined;
 /**
  * Compressible spans in the DSH seq dialect, for the nudge range table.
  *

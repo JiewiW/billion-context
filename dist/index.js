@@ -4,7 +4,7 @@ import {
   ManualCompactionError
 } from "@deepseek-ai/dsh-compaction";
 
-// node_modules/acp-kernel/dist/chunk-Q3P5Z2PV.js
+// ../acpk/dist/chunk-B3BFJAP4.js
 import { createRequire } from "module";
 var require2 = createRequire(import.meta.url);
 function defaultCountTokens(text) {
@@ -93,6 +93,28 @@ FORMAT:
 - Cross-block synthesis: if multiple source blocks cover the same topic (same PR, same feature, same bug), MERGE them into a single group of bullets. Do not repeat the same fact from different blocks \u2014 keep it once under the most relevant source header.
 
 SIZE TARGET: 50-150 tokens per source block (excluding the header). If you can't fit it in 150 tokens, you're keeping too much process. If a block has nothing worth keeping (pure noise), output just the header followed by "[no actionable content]."`;
+var QUOTE_LONG_CHARS = 500;
+var QUOTE_LENGTH_COEFF = {
+  /** ≤120 字符 */
+  short: 1,
+  /** 120–500 */
+  medium: 0.62,
+  /** 500–2000 */
+  long: 0.34,
+  /** >2000 */
+  huge: 0.12
+};
+var QUOTE_WEIGHTS = {
+  w1: 0.34,
+  w2: 0.2,
+  w3: 0.12,
+  w4: 0.2,
+  w5: 0.14
+};
+var QUOTE_T_HIGH = 0.4;
+var QUOTE_THETA_STRICT = 0.56;
+var QUOTE_THETA_LOOSE = 0.56;
+var QUOTE_THETA_OUTER = 0.7;
 var TIER3_CONDENSE_RULES = `TIER 3 COMPRESSION \u2014 ULTRA-CONDENSATION
 
 You are compressing distilled summaries (Tier 2) into ultra-condensed facts (Tier 3). The distilled summaries already contain only decisions and outcomes. Your job is to reduce them to bare factual references.
@@ -375,7 +397,7 @@ function clampWindow(text, start, end) {
   return text.slice(s, Math.max(s, e));
 }
 
-// node_modules/acp-kernel/dist/chunk-MXL3G3BN.js
+// ../acpk/dist/chunk-SNH4XGQQ.js
 function createInitialState() {
   return {
     blocks: [],
@@ -441,7 +463,7 @@ function advanceSurvival(state, promotionThreshold) {
   }
 }
 
-// node_modules/acp-kernel/dist/index.js
+// ../acpk/dist/index.js
 import { createHash } from "crypto";
 import { join } from "path";
 var REF_WIDTH = 5;
@@ -528,6 +550,22 @@ function isCovered(id, coveredBases) {
 function isRenderedSummaryMessage(message) {
   return isSummaryMessageId(message.id) && message.role === "system" && message.contentType === "text";
 }
+var USER_VERBATIM_PROVENANCES = /* @__PURE__ */ new Set(["user-turn", "user-material"]);
+function isUserVerbatimProvenance(provenance) {
+  return provenance === void 0 || USER_VERBATIM_PROVENANCES.has(provenance);
+}
+function collectUserVerbatimIds(messages, keep) {
+  const userIndices = [];
+  messages.forEach((message, index) => {
+    if (message.role !== "user") return;
+    if (!isUserVerbatimProvenance(message.provenance)) return;
+    userIndices.push(index);
+  });
+  const kept = keep > 0 ? userIndices.slice(-keep) : userIndices;
+  const ids = /* @__PURE__ */ new Set();
+  for (const index of kept) ids.add(messages[index].id);
+  return ids;
+}
 function prune(messages, state, options = {}) {
   const covered = coveredMessageIds(state);
   if (covered.size === 0) return [...messages];
@@ -551,7 +589,12 @@ function prune(messages, state, options = {}) {
   return stripOrphanedReasoning(
     stripOrphanedToolResults(
       stripOrphanedToolCalls(
-        rebuildMessages(messages, coveredBases, firstUserIndex, anchors)
+        rebuildMessages(messages, coveredBases, firstUserIndex, anchors, {
+          userVerbatimIds: collectUserVerbatimIds(
+            messages,
+            options.userVerbatimKeep ?? 0
+          )
+        })
       )
     )
   );
@@ -636,7 +679,7 @@ function pairSafeAnchorIndex(messages, index, ix) {
   }
   return safe;
 }
-function rebuildMessages(messages, coveredBases, firstUserIndex, anchors) {
+function rebuildMessages(messages, coveredBases, firstUserIndex, anchors, options = {}) {
   const ix = anchors.length > 0 ? buildAnchorPairingIndex(messages) : null;
   const safeAnchors = anchors.map((anchor) => ({
     ...anchor,
@@ -652,6 +695,10 @@ function rebuildMessages(messages, coveredBases, firstUserIndex, anchors) {
       result.push(renderSummary(pending.shift()));
     }
     if (index === firstUserIndex && firstUserIndex >= 0) {
+      result.push(messages[index]);
+      continue;
+    }
+    if (messages[index].role === "user" && (options.userVerbatimIds?.has(messages[index].id) ?? false)) {
       result.push(messages[index]);
       continue;
     }
@@ -847,11 +894,16 @@ function defaultConfig(modelContextLimit, overrides = {}) {
     compress: {
       minCompressRange: 5e3,
       maxSummaryLength: 2e4,
-      minSummaryLength: 50
+      minSummaryLength: 50,
+      // 改进 3 的交付态：enforce（2026-10-29 用户复审同意切 enforce，RL-5 解冻；
+      // 切换前全量复验见 改进施工-交付报告-TASK7-8-9-10-20261029.md §3）。
+      quoteFidelityMode: "enforce"
     },
     protectedTools: [],
     protectedLatestTools: [],
     preserveRecentMessages: 5,
+    // 方案 A 的语义：0 = 全部 user 消息原文保留。
+    userVerbatimKeep: 0,
     preserveRecentTokens: 5e3,
     modelContextLimit,
     absorb: {
@@ -921,6 +973,12 @@ function validateConfig(config) {
   }
   if (config.truncate.terminalEscapeAfter !== void 0 && (!Number.isInteger(config.truncate.terminalEscapeAfter) || config.truncate.terminalEscapeAfter < 0)) {
     errors.push("truncate.terminalEscapeAfter must be an integer >= 0");
+  }
+  if (config.userVerbatimKeep !== void 0 && (!Number.isInteger(config.userVerbatimKeep) || config.userVerbatimKeep < 0)) {
+    errors.push("userVerbatimKeep must be an integer >= 0");
+  }
+  if (config.compress.quoteFidelityMode !== void 0 && config.compress.quoteFidelityMode !== "off" && config.compress.quoteFidelityMode !== "warn" && config.compress.quoteFidelityMode !== "enforce") {
+    errors.push('compress.quoteFidelityMode must be "off", "warn" or "enforce"');
   }
   for (const tier of [config.tiers.tier2Trigger, config.tiers.tier3Trigger]) {
     if (tier < 1) errors.push("tier triggers must be >= 1");
@@ -4868,7 +4926,12 @@ var assignRefsNode = {
   run(io, ctx) {
     const hasProtection = ctx.config.protectedTools.length > 0 || !!ctx.config.isToolProtected || (ctx.config.protectedLatestTools?.length ?? 0) > 0;
     const latest = hasProtection ? collectLatestProtected(io.messages, ctx.config) : void 0;
-    const protectedFn = (m) => hasMediaPayload(m) || (hasProtection ? isMessageProtected(m, ctx.config) || (latest ? isMessageLatestProtected(m, latest) : false) : false);
+    const keptUserIds = collectUserVerbatimIds(
+      io.messages,
+      ctx.config.userVerbatimKeep ?? 0
+    );
+    const protectedFn = (m) => hasMediaPayload(m) || // 用户消息保护：保住「先/不要/必须」这类限定强调
+    keptUserIds.has(m.id) || (hasProtection ? isMessageProtected(m, ctx.config) || (latest ? isMessageLatestProtected(m, latest) : false) : false);
     const refResult = assignRefs(io.messages, {
       existing: io.state.messageRefs,
       nextIndex: highestUsedIndex(io.state.messageRefs) + 1,
@@ -4889,8 +4952,13 @@ var syncBlocksNode = {
 };
 var pruneNode = {
   name: "prune",
-  run(io) {
-    return { ...io, messages: prune(io.messages, io.state) };
+  run(io, ctx) {
+    return {
+      ...io,
+      messages: prune(io.messages, io.state, {
+        userVerbatimKeep: ctx.config.userVerbatimKeep ?? 0
+      })
+    };
   }
 };
 var absorbHideNode = {
@@ -5043,7 +5111,10 @@ var emergencyTruncateNode = {
       ctx.countTokens,
       {
         protectRecentMessages: ctx.config.preserveRecentMessages,
-        includeTextMessages: true
+        // 不再把 user/assistant 散文列为末位候选：95% 用量下切掉用户指令中段
+        // 不留痕、不带角色豁免，是「压掉了不该压的」最直接路径。
+        // 代价：末位安全阀只剩工具结果，见 terminalEscapeAfter 连锁反应。
+        includeTextMessages: false
       }
     );
     const nudge = io.effects.nudge;
@@ -5237,7 +5308,30 @@ function applySingleRange(input) {
       )}. Nothing was compressed. To rewrite or merge those blocks, reference them by block ID (${first}..${last}); otherwise run acp_status and compress a range it reports as compressible.`
     );
   }
+  applyQuoteFidelityGate({
+    mode: input.config.compress.quoteFidelityMode ?? "warn",
+    messages: input.messages,
+    ids: filteredIds,
+    summary: input.spec.summary,
+    maxSummaryLength: input.config.compress.maxSummaryLength,
+    warnings
+  });
   validateCompressionRange(input, filteredIds, consumedBlockIds.length);
+  const protectedUserIds = collectUserVerbatimIds(
+    input.messages,
+    input.config.userVerbatimKeep ?? 0
+  );
+  const hitProtectedUserIds = filteredIds.filter(
+    (id) => protectedUserIds.has(id)
+  );
+  if (hitProtectedUserIds.length > 0) {
+    const keep = input.config.userVerbatimKeep ?? 0;
+    throw new Error(
+      `Cannot compress user message(s) ${hitProtectedUserIds.join(
+        ", "
+      )}: protected verbatim (userVerbatimKeep=${keep}; 0 = every user message). Narrow the range to exclude them, or set userVerbatimKeep to a positive count to release older user messages into compression.`
+    );
+  }
   let compressedTokens = 0;
   for (const id of filteredIds) {
     const message = input.messages.find((entry) => entry.id === id);
@@ -5306,6 +5400,347 @@ function applyPairBoundaryAdjustments(resolved, messages) {
     if (msg) ids.push(msg.id);
   }
   return ids;
+}
+var QUOTE_EMPHASIS_MARKERS = [
+  "\u5FC5\u987B",
+  "\u52A1\u5FC5",
+  "\u4E00\u5B9A",
+  "\u53EA\u80FD",
+  "\u53EA\u9700",
+  "\u5148",
+  "\u518D",
+  "\u4E0D\u8981",
+  "\u522B",
+  "\u7981\u6B62",
+  "\u91CD\u70B9\u662F",
+  "must",
+  "never",
+  "don't",
+  "only",
+  "first",
+  "required"
+];
+var QUOTE_EDGE_CHARS = 200;
+function normalizeQuoteText(text) {
+  return text.replace(
+    /[\uFF01-\uFF5E]/g,
+    (ch) => String.fromCharCode(ch.charCodeAt(0) - 65248)
+  ).replace(/\u3000/g, " ").replace(/[\u2018\u2019\u201B\u2032]/g, "'").replace(/[\u201C\u201D\u201F\u2033]/g, '"').replace(/\s+/g, " ").trim().toLowerCase();
+}
+function splitQuoteSentences(text) {
+  return text.split(/(?<=[。！？；!?;\n])|(?<=\.\s)/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 0);
+}
+function emphasisSentencesOf(text) {
+  return splitQuoteSentences(text).filter((sentence) => {
+    const lowered = sentence.toLowerCase();
+    return QUOTE_EMPHASIS_MARKERS.some(
+      (marker) => lowered.includes(marker.toLowerCase())
+    );
+  });
+}
+function degradeQuoteFragment(fragment, maxSummaryLength) {
+  const limit = maxSummaryLength > 0 ? maxSummaryLength : Number.POSITIVE_INFINITY;
+  if (fragment.length <= limit) return fragment;
+  const sentences = emphasisSentencesOf(fragment).join(" ");
+  const head = fragment.slice(0, QUOTE_EDGE_CHARS);
+  const tail = fragment.slice(-QUOTE_EDGE_CHARS);
+  return `${sentences} \u2026${head}\u2026[middle omitted]\u2026${tail}`;
+}
+var QUOTE_FIDELITY_SOURCES = /* @__PURE__ */ new Set(["user-turn", "user-material"]);
+function isQuoteFidelitySource(provenance) {
+  return provenance !== void 0 && QUOTE_FIDELITY_SOURCES.has(provenance);
+}
+var QUOTE_STRONG_MARKERS = [
+  "\u5FC5\u987B",
+  "\u52A1\u5FC5",
+  "\u53EA\u80FD",
+  "\u4E0D\u5F97",
+  "\u7981\u6B62",
+  "\u4E0D\u8981",
+  "\u4E25\u683C",
+  "\u786E\u4FDD",
+  "must",
+  "never",
+  "required",
+  "don't",
+  "do not",
+  "only"
+];
+var QUOTE_NEGATION_MARKERS = [
+  "\u4E0D\u8981",
+  "\u4E0D\u5F97",
+  "\u7981\u6B62",
+  "\u4E0D\u8BB8",
+  "never",
+  "don't",
+  "do not"
+];
+var QUOTE_IMPERATIVE_MARKERS = [
+  "\u8BF7",
+  "\u5E2E\u6211",
+  "\u9EBB\u70E6",
+  "\u4F60",
+  "\u4F60\u4EEC",
+  "\u73B0\u5728",
+  "\u63A5\u4E0B\u6765",
+  "\u7ACB\u5373",
+  "\u9A6C\u4E0A",
+  "\u8BB0\u5F97"
+];
+var QUOTE_MODAL_CHARS = /[的了呢吗啊呀哦吧嘛啦罢喽]/g;
+var QUOTE_IDENT_RE = /[a-z0-9_][a-z0-9_.\-/]{2,}/g;
+var QUOTE_STRUCTURED_LINE = /^\s*(?:[-*+]|\d+[.)、]|\||#{1,6}\s|>|\$|\[|\{|\/\/|<\/?[a-z])/;
+var QUOTE_OUTER_MAX_CHARS = 400;
+var QUOTE_OUTER_MAX_LINES = 3;
+function countQuoteMarkers(text, needles) {
+  let count = 0;
+  for (const needle of needles) count += text.split(needle).length - 1;
+  return count;
+}
+function quoteLengthCoefficient(chars) {
+  if (chars <= 120) return QUOTE_LENGTH_COEFF.short;
+  if (chars <= QUOTE_LONG_CHARS) return QUOTE_LENGTH_COEFF.medium;
+  if (chars <= 2e3) return QUOTE_LENGTH_COEFF.long;
+  return QUOTE_LENGTH_COEFF.huge;
+}
+function importanceOf(text) {
+  const normalized = normalizeQuoteText(text);
+  const per100 = Math.max(normalized.length, 1) / 100;
+  const strongDensity = Math.min(
+    countQuoteMarkers(normalized, QUOTE_STRONG_MARKERS) / per100,
+    1
+  );
+  const negation = Math.min(
+    countQuoteMarkers(normalized, QUOTE_NEGATION_MARKERS) / 3,
+    1
+  );
+  const identDensity = Math.min(
+    (normalized.match(QUOTE_IDENT_RE) ?? []).length / per100,
+    1
+  );
+  const imperative = countQuoteMarkers(normalized, QUOTE_IMPERATIVE_MARKERS) > 0 ? 1 : 0;
+  return QUOTE_WEIGHTS.w1 * strongDensity + QUOTE_WEIGHTS.w2 * negation + QUOTE_WEIGHTS.w3 * identDensity + QUOTE_WEIGHTS.w4 * imperative + QUOTE_WEIGHTS.w5 * quoteLengthCoefficient(normalized.length);
+}
+function quoteTierOf(text) {
+  const chars = text.trim().length;
+  if (chars <= QUOTE_LONG_CHARS) return "strict";
+  return importanceOf(text) >= QUOTE_T_HIGH ? "strict" : "loose";
+}
+function quoteKeywordsOf(text) {
+  const normalized = normalizeQuoteText(text);
+  const tokens = /* @__PURE__ */ new Set();
+  for (const match of normalized.matchAll(QUOTE_IDENT_RE)) {
+    const word = match[0].replace(/^[.\-/]+|[.\-/]+$/g, "");
+    if (word.length >= 2) tokens.add(word);
+  }
+  for (const segment of normalized.split(/[^\u4e00-\u9fff]+/)) {
+    const cleaned = segment.replace(QUOTE_MODAL_CHARS, "");
+    if (cleaned.length === 0) continue;
+    if (cleaned.length === 1) {
+      tokens.add(cleaned);
+      continue;
+    }
+    for (let i = 0; i + 2 <= cleaned.length; i += 1) {
+      tokens.add(cleaned.slice(i, i + 2));
+    }
+  }
+  return tokens;
+}
+function quoteCoverageOf(keywords, summaryTokens) {
+  if (keywords.size === 0) return 1;
+  let hit = 0;
+  for (const token of keywords) if (summaryTokens.has(token)) hit += 1;
+  return hit / keywords.size;
+}
+function quoteOuterSentenceOf(text) {
+  const picked = [];
+  for (const line of text.split("\n")) {
+    if (picked.length >= QUOTE_OUTER_MAX_LINES) break;
+    const trimmed = line.trim();
+    if (trimmed.length < 4) continue;
+    if (QUOTE_STRUCTURED_LINE.test(trimmed)) continue;
+    picked.push(trimmed);
+  }
+  const joined = picked.join("\n");
+  return (joined.length > 0 ? joined : text.trim()).slice(
+    0,
+    QUOTE_OUTER_MAX_CHARS
+  );
+}
+function quoteIdentityTokensOf(text) {
+  const normalized = normalizeQuoteText(text);
+  const out = [];
+  for (const match of normalized.matchAll(QUOTE_IDENT_RE)) {
+    const word = match[0].replace(/^[.\-/]+|[.\-/]+$/g, "");
+    if (word.length >= 4 || /[.\-/]/.test(word)) out.push(word);
+    if (out.length >= 24) break;
+  }
+  return [...new Set(out)].slice(0, 6);
+}
+function missingOfLongMaterial(text, summaryTokens) {
+  if (constraintSentencesOf(text).length === 0) return [];
+  const missing = [];
+  const outer = quoteOuterSentenceOf(text);
+  const outerConstraints = constraintSentencesOf(outer);
+  if (outerConstraints.length > 0) {
+    const joined = outerConstraints.join(" ");
+    if (quoteCoverageOf(quoteKeywordsOf(joined), summaryTokens) < QUOTE_THETA_OUTER) {
+      missing.push(joined);
+    }
+  }
+  const identity = quoteIdentityTokensOf(text);
+  if (identity.length > 0 && !identity.some((token) => summaryTokens.has(token))) {
+    missing.push(`[\u6750\u6599\u6807\u8BC6] ${identity.slice(0, 3).join(" / ")}`);
+  }
+  return missing;
+}
+function constraintSentencesOf(text) {
+  return splitQuoteSentences(text).filter((sentence) => {
+    const lowered = sentence.toLowerCase();
+    if (QUOTE_STRONG_MARKERS.some((marker) => lowered.includes(marker)) || QUOTE_NEGATION_MARKERS.some((marker) => lowered.includes(marker))) {
+      return true;
+    }
+    if (isImperativeSentence(sentence)) return true;
+    if (QUOTE_FORMAT_PATTERN.test(sentence)) return true;
+    if (QUOTE_PLACEHOLDER_PATTERN.test(sentence)) return true;
+    return false;
+  });
+}
+var QUOTE_IMPERATIVE_VERBS = [
+  "\u5BA1\u9605",
+  "\u5BA1\u8BFB",
+  "\u8BFB\u53D6",
+  "\u8BFB\u51FA",
+  "\u5217\u51FA",
+  "\u8C03\u7528",
+  "\u6267\u884C",
+  "\u8FD0\u884C",
+  "\u8F93\u51FA",
+  "\u56DE\u590D",
+  "\u56DE\u7B54",
+  "\u91CD\u8BB2",
+  "\u91CD\u5199",
+  "\u6539\u6210",
+  "\u6539\u5199",
+  "\u91CD\u8FF0",
+  "\u590D\u8FF0",
+  "\u63D0\u53D6",
+  "\u5BFC\u51FA",
+  "\u751F\u6210",
+  "\u521B\u5EFA",
+  "\u65B0\u5EFA",
+  "\u53D1\u9001",
+  "\u63D0\u4EA4",
+  "\u4E0A\u4F20",
+  "\u4E0B\u8F7D",
+  "\u5B89\u88C5",
+  "\u90E8\u7F72",
+  "\u6253\u5370",
+  "\u7EDF\u8BA1",
+  "\u68C0\u7D22",
+  "\u67E5\u627E",
+  "\u641C\u7D22",
+  "\u9A8C\u8BC1",
+  "\u68C0\u67E5",
+  "\u5BF9\u6BD4",
+  "\u6BD4\u8F83",
+  "\u7FFB\u8BD1",
+  "\u8F6C\u6362",
+  "\u89E3\u6790",
+  "\u6253\u5F00",
+  "\u5173\u95ED",
+  "\u5220\u9664",
+  "\u79FB\u52A8",
+  "\u91CD\u547D\u540D"
+];
+var QUOTE_IMPERATIVE_PREFIX = /^(?:请|帮我|麻烦|给我|你|你们|咱们|现在|立刻|马上|接下来|然后|再|先|只|仅|务必|严格|重新|按|照|直接|继续|需要|要)+/;
+function isImperativeSentence(sentence) {
+  const stripped = sentence.trim().replace(/^[\s，,。.、：:；;]+/, "").replace(QUOTE_IMPERATIVE_PREFIX, "").trim();
+  if (stripped.length === 0) return false;
+  for (const verb of QUOTE_IMPERATIVE_VERBS) {
+    if (stripped.startsWith(verb)) return true;
+  }
+  return false;
+}
+var QUOTE_FORMAT_PATTERN = /只(?:回复|输出|返回|打印|列出|写|建|改|动|留|保留|发送|执行|做|说)[^，。；！？]{0,8}?[零一二两三四五六七八九十百千万\d]/;
+var QUOTE_PLACEHOLDER_PATTERN = /[A-Z][A-Z0-9_]{2,}=<[^>]*>/;
+function missingQuoteFragmentsOf(text, provenance, normalizedSummary, summaryTokens) {
+  const trimmed = text.trim();
+  const normalizedText = normalizeQuoteText(trimmed);
+  if (normalizedText.length === 0) return [];
+  if (normalizedSummary.includes(normalizedText)) return [];
+  const emphasis = emphasisSentencesOf(trimmed);
+  if (emphasis.length > 0 && emphasis.every(
+    (sentence) => normalizedSummary.includes(normalizeQuoteText(sentence))
+  )) {
+    return [];
+  }
+  if (provenance === "user-material" && trimmed.length > QUOTE_LONG_CHARS) {
+    return missingOfLongMaterial(trimmed, summaryTokens);
+  }
+  const constraints = constraintSentencesOf(trimmed);
+  if (constraints.length === 0) return [];
+  const tier = quoteTierOf(trimmed);
+  if (tier === "strict") {
+    const missing = [];
+    for (const sentence of constraints) {
+      const normalized = normalizeQuoteText(sentence);
+      if (normalizedSummary.includes(normalized)) continue;
+      const coverage2 = quoteCoverageOf(quoteKeywordsOf(sentence), summaryTokens);
+      if (coverage2 < QUOTE_THETA_STRICT) missing.push(sentence);
+    }
+    return missing;
+  }
+  const coverage = quoteCoverageOf(quoteKeywordsOf(trimmed), summaryTokens);
+  if (coverage >= QUOTE_THETA_LOOSE) return [];
+  return [trimmed.slice(0, QUOTE_EDGE_CHARS)];
+}
+function quoteFidelityViolations(messages, ids, summary) {
+  const normalizedSummary = normalizeQuoteText(summary);
+  const summaryTokens = quoteKeywordsOf(summary);
+  const byId = /* @__PURE__ */ new Map();
+  for (const message of messages) byId.set(message.id, message);
+  const violations = [];
+  for (const id of ids) {
+    const message = byId.get(id);
+    if (message === void 0 || message.role !== "user") continue;
+    if (!isQuoteFidelitySource(message.provenance)) continue;
+    const text = message.text ?? "";
+    if (text.trim().length === 0) continue;
+    const missing = missingQuoteFragmentsOf(
+      text,
+      message.provenance,
+      normalizedSummary,
+      summaryTokens
+    );
+    if (missing.length === 0) continue;
+    violations.push({ messageId: id, missing });
+  }
+  return violations;
+}
+function applyQuoteFidelityGate(input) {
+  if (input.mode === "off") return;
+  const violations = quoteFidelityViolations(
+    input.messages,
+    input.ids,
+    input.summary
+  );
+  if (violations.length === 0) return;
+  const detail = violations.map((violation) => {
+    const fragments = violation.missing.map(
+      (fragment) => degradeQuoteFragment(fragment, input.maxSummaryLength)
+    ).join(" | ");
+    return `message ${violation.messageId}: ${fragments}`;
+  }).join(" ;; ");
+  const headline = `Summary dropped required user wording from ${violations.length} message(s) in the compressed range`;
+  if (input.mode === "enforce") {
+    throw new Error(
+      `${headline} \u2014 add the quoted text verbatim (or all of its emphasised sentences) and retry: ${detail}`
+    );
+  }
+  input.warnings.push(
+    `${headline} (quoteFidelityMode=warn, compression allowed) \u2014 ${detail}`
+  );
 }
 function validateCompressionRange(input, directMessageIds, consumedBlockCount) {
   const cfg = input.config.compress;
@@ -5804,6 +6239,14 @@ function collectVisible(messages, state, countTokens) {
   });
   return { visible, summaryTokens };
 }
+function verbatimSection(keep, userStats) {
+  const head = keep > 0 ? `  userVerbatimKeep=${keep} (last ${keep} preserved; older may enter T3)` : "  userVerbatimKeep=0 (all user messages preserved verbatim)";
+  return [
+    "USER MESSAGE PROTECTION",
+    head,
+    `  user messages: ${userStats.count} msgs / ${formatTokens2(userStats.tokens)} tok (${pct(userStats.tokens, userStats.visibleTotal)}% of visible) \u2014 irreducible floor`
+  ];
+}
 function buildStatusReport(state, messages, countTokens, options = {}) {
   const scope = options.scope;
   const view = options.view ?? "ranges";
@@ -5839,7 +6282,15 @@ function buildStatusReport(state, messages, countTokens, options = {}) {
     state,
     countTokens,
     limit,
-    options.meta
+    options.meta,
+    options.userVerbatimKeep,
+    // 口径：从原始 messages 数 user 消息（受保护的是 BLOCKED、无 ref，
+    // collectVisible 会把它们整个跳过）；分母仍用可见总量，与前一行同口径。
+    {
+      count: messages.filter((m) => m.role === "user").length,
+      tokens: messages.filter((m) => m.role === "user").reduce((sum, m) => sum + countTokens(m.text ?? ""), 0),
+      visibleTotal: visible.reduce((sum, m) => sum + m.tokens, 0)
+    }
   );
 }
 function surfaceLine(meta) {
@@ -5853,7 +6304,7 @@ function surfaceLine(meta) {
   if (parts.length === 0) return null;
   return `ACTIVE SURFACE: ${parts.join(" | ")}`;
 }
-function renderOverview(visible, summaryTokens, blocks, state, countTokens, limit, meta) {
+function renderOverview(visible, summaryTokens, blocks, state, countTokens, limit, meta, userVerbatimKeep, userStats) {
   const lines = [];
   const surface = surfaceLine(meta);
   if (surface) {
@@ -5882,6 +6333,10 @@ function renderOverview(visible, summaryTokens, blocks, state, countTokens, limi
     lines.push(
       `  Top tools: ${topTypes.map(([t, n]) => `${t} (${pct(n, total)}%)`).join(", ")}`
     );
+  }
+  if (userVerbatimKeep !== void 0) {
+    lines.push("");
+    lines.push(...verbatimSection(userVerbatimKeep, userStats));
   }
   lines.push("");
   if (blocks.length === 0) {
@@ -6470,21 +6925,83 @@ function decodeAcpBlockLedger(rawOutput) {
   }
 }
 
-// src/messages.ts
-function extractText(content) {
+// src/inject-trace.ts
+import { appendFileSync, mkdirSync } from "fs";
+import { homedir } from "os";
+import { dirname, join as join2 } from "path";
+var TRACE_FP_CHARS = 120;
+var TRACE_DEFAULT_FILE = join2(homedir(), ".dsh", "logs", "acp-inject-trace.jsonl");
+var SEEN_CAP = 2e4;
+var EVICT_BATCH = SEEN_CAP / 10;
+var surfaceWatermarks = /* @__PURE__ */ new Map();
+var splicedWatermarks = /* @__PURE__ */ new Map();
+var WATERMARK_CAP = 4096;
+var seenUnorderedKeys = /* @__PURE__ */ new Set();
+var seenMessageIds = /* @__PURE__ */ new Set();
+function traceEnabled(env = process.env) {
+  const raw = env.DSH_ACP_INJECT_TRACE;
+  if (raw === void 0) return false;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "" || normalized === "0" || normalized === "off" || normalized === "false") {
+    return false;
+  }
+  return true;
+}
+function traceFilePath(env = process.env) {
+  const override = env.DSH_ACP_INJECT_TRACE_FILE;
+  return override !== void 0 && override.trim().length > 0 ? override.trim() : TRACE_DEFAULT_FILE;
+}
+function localIsoString(now) {
+  const pad = (value, width = 2) => String(Math.abs(value)).padStart(width, "0");
+  const offsetMinutes = -now.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const offset = sign + pad(Math.floor(Math.abs(offsetMinutes) / 60)) + ":" + pad(Math.abs(offsetMinutes) % 60);
+  return now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + "T" + pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds()) + "." + pad(now.getMilliseconds(), 3) + offset;
+}
+function sourceLabelOf(payload) {
+  const source = payload?.source;
+  if (source === void 0 || source === null || typeof source !== "object") return "none";
+  if (source.kind === "plugin" && typeof source.plugin === "string" && source.plugin.length > 0) {
+    return "plugin:" + source.plugin;
+  }
+  if (typeof source.kind === "string" && source.kind.length > 0) return source.kind;
+  return "unknown";
+}
+function messageIdOf(payload) {
+  const id = payload?.id;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+function traceTextOf(event) {
+  const data = event.data;
+  const content = data?.message?.content ?? data?.content;
+  return collectText(content);
+}
+function traceTextOfMessage(message) {
+  return collectText(message?.content);
+}
+function writeTraceLine(line, env) {
+  const file = traceFilePath(env);
+  mkdirSync(dirname(file), { recursive: true });
+  appendFileSync(file, JSON.stringify(line) + "\n", "utf8");
+}
+function collectText(content) {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   const parts = [];
-  for (const block of content) {
-    if (block === null || typeof block !== "object") continue;
-    const b = block;
-    if (b.type === "text" && typeof b.text === "string") {
-      parts.push(b.text);
-    } else if (b.type === "image" || b.type === "file") {
-      const placeholder = attachmentPlaceholder(b.type, b.attachment);
+  for (const part of content) {
+    if (typeof part === "string") {
+      parts.push(part);
+      continue;
+    }
+    if (part === null || typeof part !== "object") continue;
+    const block = part;
+    if (block.type === "text" && typeof block.text === "string") {
+      parts.push(block.text);
+    } else if (block.type === "image" || block.type === "file") {
+      const placeholder = attachmentPlaceholder(block.type, block.attachment);
       if (placeholder !== null) parts.push(placeholder);
-    } else if (Array.isArray(b.content)) {
-      parts.push(extractText(b.content));
+    } else if (Array.isArray(block.content)) {
+      parts.push(collectText(block.content));
     }
   }
   return parts.join("\n");
@@ -6499,6 +7016,142 @@ function attachmentPlaceholder(type, attachment) {
   const a = attachment;
   const name = typeof a.name === "string" && a.name.length > 0 ? a.name : void 0;
   const size = typeof a.bytes === "number" && Number.isFinite(a.bytes) ? ` ${formatBytes(a.bytes)}` : "";
+  if (type === "file") return `[file ${name ?? "attachment"}${size}]`;
+  const mediaType = typeof a.mediaType === "string" && a.mediaType.length > 0 ? a.mediaType : "image";
+  const dimensions = typeof a.width === "number" && typeof a.height === "number" ? ` ${a.width}x${a.height}` : "";
+  return `[image ${mediaType}${name ? ` ${name}` : ""}${dimensions}${size}]`;
+}
+function eventKeyOf(event, namespace) {
+  const seq = event.seq;
+  return namespace + "|" + String(event.type) + "#" + String(seq);
+}
+function numericSeqOf(seq) {
+  return typeof seq === "number" && Number.isFinite(seq) ? seq : null;
+}
+function evictOldestKeys(set, count) {
+  let removed = 0;
+  for (const key of set) {
+    if (removed >= count) break;
+    set.delete(key);
+    removed += 1;
+  }
+}
+function evictOldestEntries(map, count) {
+  let removed = 0;
+  for (const key of map.keys()) {
+    if (removed >= count) break;
+    map.delete(key);
+    removed += 1;
+  }
+}
+function addBounded(set, key) {
+  if (set.has(key)) return false;
+  if (set.size >= SEEN_CAP) evictOldestKeys(set, EVICT_BATCH);
+  set.add(key);
+  return true;
+}
+function bumpWatermark(map, namespace, seq) {
+  const watermark = map.get(namespace);
+  if (watermark !== void 0 && seq <= watermark) return false;
+  if (watermark === void 0 && map.size >= WATERMARK_CAP) evictOldestEntries(map, 1);
+  map.set(namespace, seq);
+  return true;
+}
+function traceSurfaceEvent(event, surfaceClass, env = process.env, namespace = "") {
+  if (!traceEnabled(env)) return;
+  try {
+    const seq = numericSeqOf(event.seq);
+    if (seq === null) {
+      if (!addBounded(seenUnorderedKeys, eventKeyOf(event, namespace))) return;
+    } else {
+      if (!bumpWatermark(surfaceWatermarks, namespace, seq)) return;
+    }
+    const messageId = messageIdOf(event.data);
+    if (messageId !== null && !addBounded(seenMessageIds, messageId)) return;
+    const text = traceTextOf(event);
+    if (text.length === 0) return;
+    writeTraceLine(
+      {
+        ts: localIsoString(/* @__PURE__ */ new Date()),
+        seq: event.seq,
+        class: surfaceClass,
+        source: sourceLabelOf(event.data),
+        chars: text.length,
+        fp120: text.slice(0, TRACE_FP_CHARS),
+        // 分类点拿不到触发原因（触发方在上游 host 侧），按计划书填 unknown，禁止编造。
+        trigger: "unknown"
+      },
+      env
+    );
+  } catch {
+  }
+}
+function traceInjectedMessage(message, surfaceClass, hostSeq, env = process.env, namespace = "") {
+  if (!traceEnabled(env)) return;
+  try {
+    const messageId = messageIdOf(message);
+    if (messageId !== null && !addBounded(seenMessageIds, messageId)) return;
+    const text = traceTextOfMessage(message);
+    if (text.length === 0) return;
+    writeTraceLine(
+      {
+        ts: localIsoString(/* @__PURE__ */ new Date()),
+        seq: hostSeq,
+        class: surfaceClass,
+        source: sourceLabelOf(message),
+        chars: text.length,
+        fp120: text.slice(0, TRACE_FP_CHARS),
+        trigger: "unknown"
+      },
+      env
+    );
+  } catch {
+  }
+}
+function claimSplicedEvent(hostSeq, namespace = "") {
+  const seq = numericSeqOf(hostSeq);
+  if (seq === null) return true;
+  return bumpWatermark(splicedWatermarks, namespace, seq);
+}
+function eventAlreadyTraced(event, namespace = "") {
+  const seq = numericSeqOf(event.seq);
+  if (seq === null) return seenUnorderedKeys.has(eventKeyOf(event, namespace));
+  const watermark = surfaceWatermarks.get(namespace);
+  return watermark !== void 0 && seq <= watermark;
+}
+function messageAlreadyTraced(messageId) {
+  return messageId !== null && seenMessageIds.has(messageId);
+}
+
+// src/messages.ts
+function extractText(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  const parts = [];
+  for (const block of content) {
+    if (block === null || typeof block !== "object") continue;
+    const b = block;
+    if (b.type === "text" && typeof b.text === "string") {
+      parts.push(b.text);
+    } else if (b.type === "image" || b.type === "file") {
+      const placeholder = attachmentPlaceholder2(b.type, b.attachment);
+      if (placeholder !== null) parts.push(placeholder);
+    } else if (Array.isArray(b.content)) {
+      parts.push(extractText(b.content));
+    }
+  }
+  return parts.join("\n");
+}
+function formatBytes2(bytes) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+function attachmentPlaceholder2(type, attachment) {
+  if (attachment === null || typeof attachment !== "object") return null;
+  const a = attachment;
+  const name = typeof a.name === "string" && a.name.length > 0 ? a.name : void 0;
+  const size = typeof a.bytes === "number" && Number.isFinite(a.bytes) ? ` ${formatBytes2(a.bytes)}` : "";
   if (type === "file") return `[file ${name ?? "attachment"}${size}]`;
   const mediaType = typeof a.mediaType === "string" && a.mediaType.length > 0 ? a.mediaType : "image";
   const dimensions = typeof a.width === "number" && typeof a.height === "number" ? ` ${a.width}x${a.height}` : "";
@@ -6579,6 +7232,10 @@ function projectEvent(event, toolNames, kernelBlockIds) {
         role: "user",
         contentType: "text",
         text,
+        // TASK-7/8：来源标签。传给内核后，保真门只查 `user-turn` / `user-material`，
+        // 原文保护名单只保护这两类**加无标签**的（两条方向相反，见各自注释）。
+        // 用 `raw`（未加检查点框的原文）判材料，避免框文本污染开头判定。
+        provenance: provenanceOfEvent(event, raw),
         ...summaryOfBlockId === void 0 ? {} : { summaryOfBlockId }
       }];
     }
@@ -6639,6 +7296,33 @@ function eventsToCoreMessages(events, toolNames) {
     out.push(...projectEvent(event, index, kernelBlockIds ?? void 0));
   }
   return out;
+}
+var SNAPSHOT_PREFIX = "Current runtime context";
+var SNAPSHOT_FP_CHARS = 120;
+function snapshotTextOf(message) {
+  if (message.role !== "user" || message.contentType !== "text") return void 0;
+  const text = message.text ?? "";
+  return text.startsWith(SNAPSHOT_PREFIX) ? text : void 0;
+}
+function snapshotFingerprint(text) {
+  return text.slice(0, SNAPSHOT_FP_CHARS).replace(/\s+/g, " ");
+}
+function dedupeSupersededSnapshots(messages) {
+  const lastIndexOf = /* @__PURE__ */ new Map();
+  const drop = /* @__PURE__ */ new Set();
+  messages.forEach((message, index) => {
+    const text = snapshotTextOf(message);
+    if (text === void 0) return;
+    const fingerprint = snapshotFingerprint(text);
+    const previous = lastIndexOf.get(fingerprint);
+    if (previous !== void 0) drop.add(previous);
+    lastIndexOf.set(fingerprint, index);
+  });
+  if (drop.size === 0) return [...messages];
+  return messages.filter((_, index) => !drop.has(index));
+}
+function surfaceCoreMessages(events, toolNames) {
+  return dedupeSupersededSnapshots(eventsToCoreMessages(events, toolNames));
 }
 function surfaceEventsOf(session) {
   return session.surface.nodes.map((seq) => eventAtOf(session, seq)).filter((event) => event !== void 0);
@@ -6769,6 +7453,59 @@ function isSkillCatalogRow(event) {
   return extractText(contentBlocksOfEvent(event)).includes("<available_skills>");
 }
 function classifySurfaceEvent(event) {
+  return classifySurfaceEventRaw(event);
+}
+function classifyAndTrace(event, namespace) {
+  const surfaceClass = classifySurfaceEventRaw(event);
+  traceSurfaceEvent(event, surfaceClass, process.env, namespace);
+  return surfaceClass;
+}
+function classifyInjectedMessage(message) {
+  const payload = message ?? {};
+  const probe = {
+    seq: 0,
+    time: "",
+    type: "user/message",
+    data: { role: "user", content: payload.content, source: payload.source }
+  };
+  return classifySurfaceEventRaw(probe);
+}
+var TRACED_EVENT_TYPES = /* @__PURE__ */ new Set([
+  "user/message",
+  "assistant/message",
+  "tool/result",
+  "compaction/summary"
+]);
+function traceSessionEvents(session) {
+  if (!traceEnabled()) return;
+  const namespace = typeof session.id === "string" ? session.id : "";
+  const events = sessionEventsOf(session);
+  for (const event of events) {
+    const eventType = event.type;
+    if (eventType === "agent/inbox/spliced") {
+      const inserted = event.data?.inserted;
+      if (!Array.isArray(inserted)) continue;
+      if (!claimSplicedEvent(event.seq, namespace)) continue;
+      for (const message of inserted) {
+        if (message === null || typeof message !== "object") continue;
+        const id = typeof message.id === "string" && message.id.length > 0 ? message.id : null;
+        if (messageAlreadyTraced(id)) continue;
+        traceInjectedMessage(
+          message,
+          classifyInjectedMessage(message),
+          event.seq,
+          process.env,
+          namespace
+        );
+      }
+      continue;
+    }
+    if (!TRACED_EVENT_TYPES.has(eventType)) continue;
+    if (eventAlreadyTraced(event, namespace)) continue;
+    classifyAndTrace(event, namespace);
+  }
+}
+function classifySurfaceEventRaw(event) {
   if (isCheckpointNode(event)) return "checkpoint";
   const eventType = event.type;
   if (eventType === "developer/message") return "metadata";
@@ -6797,6 +7534,200 @@ function isRealUserTurn(event) {
   const kind = source?.kind;
   if (typeof kind === "string" && REAL_CONTENT_KINDS.has(kind)) return false;
   return kind !== "subagent-report" && kind !== "subagent-settled";
+}
+var MATERIAL_MIN_CHARS = 500;
+var MATERIAL_MIN_LINES = 6;
+var MATERIAL_STRUCTURE_RATIO = 0.5;
+var MATERIAL_HEAD_CHARS = 200;
+var MATERIAL_DOC_HEADER = [
+  /^\s*【\s*(?:目标文档|文档|材料|任务卡|计划书|需求|规格)\s*】/,
+  /^\s*#{1,3}\s*(?:任务卡|自包含目标|文档|材料|计划书|需求文档|规格)/,
+  /^\s*(?:目标文档|文档正文|材料正文)\s*[:：]/
+];
+var PROSE_SENTENCE = /[。！？；]\s*$|[:：]\s*$/;
+var MATERIAL_PROSE_MAX_RATIO = 0.5;
+var MATERIAL_PASTE_ARTIFACT_RATIO = 0.3;
+var MATERIAL_HEADER_PROSE_MAX_LINES = 3;
+var MATERIAL_BODY_PROSE_MAX_RATIO = 0.25;
+var MATERIAL_BODY_MIN_CHARS = 300;
+var MATERIAL_BODY_MIN_LINES = 2;
+var MATERIAL_BODY_CHARS_RATIO = 0.5;
+var MATERIAL_DELIVER_REQUEST_RE = /请(?:返回|给出|提供|列出|输出|回复|汇总|整理)/;
+function stripHeaderProse(lines) {
+  let prose = 0;
+  let start = 0;
+  for (let i = 0; i < lines.length; i += 1) {
+    const trimmed = (lines[i] ?? "").trim();
+    if (trimmed.length === 0) continue;
+    if (PROSE_SENTENCE.test(trimmed) && prose < MATERIAL_HEADER_PROSE_MAX_LINES) {
+      prose += 1;
+      start = i + 1;
+      continue;
+    }
+    break;
+  }
+  return lines.slice(start);
+}
+var PASTE_ARTIFACT_LINE = [
+  /^\s*at\s+\S/,
+  // 堆栈帧
+  /^\s*(?:ERROR|WARN|WARNING|INFO|DEBUG|FATAL|TRACE)\b/,
+  // 日志级别
+  /^\s*```/,
+  // 代码围栏
+  /^\s*(?:思考|失败|成功|工具调用|输出|结果)\s*$/,
+  // 宿主回显标签
+  /^\s*[A-Za-z_$][\w$.]*\s*[:=]\s*\S/,
+  // key: value
+  /^\s*at\s+\S.*\(\s*(?:at\s+)?/,
+  // —— 2026-10-29 二补：混合形态正文里的宿主 UI 泄漏行（S041/S053 实测）——
+  /^\s*\d{1,2}:\d{2}\s*$/,
+  // 时间戳独占行（`15:27` / `22:57`）
+  /^\s*(?:处理失败|执行了命令|本轮运行失败|处理中|已完成)\s*$/,
+  // 宿主状态回显
+  /^\s*›/,
+  // 提示符行
+  /^\s*(?:读取|查找|查找文件|搜索|搜索文件内容|写入|编辑|列出|打开)\s*$/
+  // 工具调用标签行
+];
+var MATERIAL_STRUCTURED_LINE = [
+  /^\s*```/,
+  // 代码围栏
+  /^\s*(?:[-*+]|\d+[.)、])\s+\S/,
+  // 列表 / 编号行
+  /^\s*\|.*\|/,
+  // markdown 表格行
+  /^\s*#{1,6}\s+\S/,
+  // 标题
+  /^\s*>/,
+  // 引用行
+  /^\s*(?:\$|PS\s|PS>|C:\\|D:\\|C:>|D:>)\S/,
+  // shell / PowerShell 提示符 / Windows 盘符
+  /^\s*(?:\/\/|\/\*|\*\/|\*)\s*\S/,
+  // 注释
+  /^\s*[A-Za-z_$][\w$.]*\s*[:=]\s*\S/,
+  // key: value / key = value
+  /^\s*"[^"]+"\s*:/,
+  // JSON 键
+  /^\s*[{}\[\]](?:\s*$)|\s*[{}\[\]]\s*$/,
+  // 括号独占行 / 行尾括号
+  /^\s*\[[^\]]+\]/,
+  // [TAG] 日志前缀
+  /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/,
+  // 时间戳
+  /^\s*at\s+\S/,
+  // 堆栈帧
+  /^\s*(?:ERROR|WARN|WARNING|INFO|DEBUG|FATAL|TRACE)\b/,
+  // 日志级别
+  /^\s*(?:import|export|from|const|let|var|function|class|def|return|if|for|while|try|catch|end|fi|done)\b/,
+  // 代码关键字
+  /\t/,
+  // 制表符分隔的列
+  /^\s*\S+(?:\s{2,}\S+){2,}\s*$/
+  // 多列（≥2 空格分隔）
+];
+var DIRECT_ADDRESS_MARKERS = [
+  "\u8BF7",
+  "\u5E2E\u6211",
+  "\u9EBB\u70E6",
+  "\u4F60",
+  "\u4F60\u4EEC",
+  "\u54B1\u4EEC",
+  "\u73B0\u5728",
+  "\u63A5\u4E0B\u6765",
+  "\u53E6\u5916",
+  "\u8FD8\u6709",
+  "\u987A\u4FBF",
+  "\u7EE7\u7EED",
+  "\u522B",
+  "\u4E0D\u8981",
+  "\u4E0D\u5F97",
+  "\u7981\u6B62",
+  "\u5FC5\u987B",
+  "\u52A1\u5FC5",
+  "\u4E25\u683C",
+  "\u8BB0\u5F97",
+  "\u6CE8\u610F",
+  "\u53EA\u80FD",
+  "\u80FD\u5426",
+  "\u80FD\u4E0D\u80FD"
+];
+function isStructuredLine(line) {
+  return MATERIAL_STRUCTURED_LINE.some((re) => re.test(line));
+}
+function pasteArtifactRatio(lines) {
+  let artifact = 0;
+  let counted = 0;
+  for (const line of lines) {
+    if (line.trim().length === 0) continue;
+    counted += 1;
+    if (PASTE_ARTIFACT_LINE.some((re) => re.test(line))) artifact += 1;
+  }
+  if (counted === 0) return 0;
+  return artifact / counted;
+}
+function isMaterialUserText(text) {
+  const trimmed = text.trim();
+  if (trimmed.length < MATERIAL_MIN_CHARS) return false;
+  const lines = trimmed.split("\n");
+  const firstLine = lines[0] ?? "";
+  if (MATERIAL_DOC_HEADER.some((re) => re.test(firstLine))) return true;
+  if (MATERIAL_DELIVER_REQUEST_RE.test(trimmed) && pasteArtifactRatio(lines) < MATERIAL_PASTE_ARTIFACT_RATIO) {
+    return false;
+  }
+  {
+    const body = stripHeaderProse(lines);
+    const bodyLines = [];
+    let bodyChars = 0;
+    let bodyProse = 0;
+    let numbered = 0;
+    for (const line of body) {
+      const t = line.trim();
+      if (t.length === 0) continue;
+      bodyLines.push(t);
+      bodyChars += t.length;
+      if (PROSE_SENTENCE.test(t)) bodyProse += 1;
+      if (/^\d+[.)、]\s*\S/.test(t)) numbered += 1;
+    }
+    if (bodyLines.length >= MATERIAL_BODY_MIN_LINES && bodyChars >= MATERIAL_BODY_MIN_CHARS && bodyChars >= trimmed.length * MATERIAL_BODY_CHARS_RATIO && bodyProse / bodyLines.length <= MATERIAL_BODY_PROSE_MAX_RATIO && // 编号指令行 ≥3 → 用户手写的任务清单（S045「1. … 2. …」8 条），不是粘贴物；
+    // 真材料正文（堆栈/日志/UI 回显）不含这种行。回退到旧口径判定。
+    numbered < 3) {
+      return true;
+    }
+  }
+  if (lines.length < MATERIAL_MIN_LINES) return false;
+  const head = firstLine.slice(0, MATERIAL_HEAD_CHARS);
+  if (DIRECT_ADDRESS_MARKERS.some((m) => head.includes(m))) return false;
+  let structured = 0;
+  let counted = 0;
+  let prose = 0;
+  for (const line of lines) {
+    if (line.trim().length === 0) continue;
+    counted += 1;
+    if (isStructuredLine(line)) structured += 1;
+    else if (PROSE_SENTENCE.test(line.trim())) prose += 1;
+  }
+  if (counted === 0) return false;
+  const proseRatio = prose / counted;
+  if (proseRatio > MATERIAL_PROSE_MAX_RATIO) return false;
+  if (structured / counted >= MATERIAL_STRUCTURE_RATIO) return true;
+  if (pasteArtifactRatio(lines) >= MATERIAL_PASTE_ARTIFACT_RATIO) return true;
+  return false;
+}
+function provenanceOfEvent(event, text) {
+  const surfaceClass = classifySurfaceEventRaw(event);
+  if (surfaceClass === "checkpoint") return "checkpoint";
+  if (surfaceClass === "instruction") return "host-policy";
+  if (surfaceClass === "metadata") return "engine-metadata";
+  if (event.type !== "user/message") return "user-turn";
+  const source = event.data.source;
+  const plugin = sourcePluginOf(source);
+  if (plugin !== void 0 && REAL_CONTENT_PLUGINS.has(plugin)) return "host-content";
+  const kind = source?.kind;
+  if (typeof kind === "string" && REAL_CONTENT_KINDS.has(kind)) return "host-content";
+  if (typeof kind === "string" && AUDITED_RELAY_KINDS.has(kind)) return "relay";
+  if (isMaterialUserText(text)) return "user-material";
+  return "user-turn";
 }
 
 // src/host-tokens.ts
@@ -7431,6 +8362,10 @@ function guardedSurfaceSeqsOf(session) {
   }
   return guarded;
 }
+function liveRefOf(byRaw, key) {
+  const ref = byRaw[key];
+  return ref === void 0 || ref === BLOCKED_REF ? void 0 : ref;
+}
 function seqOfKernelRef(refs, ref) {
   const id = refs.byRef[ref];
   if (id === void 0) return null;
@@ -7475,6 +8410,10 @@ function compressibleSegmentsOf(session, fromIndex, toIndex, protectedSeqs, medi
     const mediaPrice = attachments.images + attachments.files > 0 ? (mediaPriceOf?.(seq) ?? 0) + hostMediaStructuralPrice(mediaBlocksOfEvent(event)) : 0;
     const tokens = defaultCountTokens(extractEventText(event)) + mediaPrice;
     const isTool = isToolEvent(event);
+    const isUserTurn = event.type === "user/message" && (() => {
+      const provenance = provenanceOfEvent(event, extractEventText(event));
+      return provenance === "user-turn" || provenance === "user-material";
+    })();
     if (current === null) {
       current = {
         start: seq,
@@ -7482,6 +8421,7 @@ function compressibleSegmentsOf(session, fromIndex, toIndex, protectedSeqs, medi
         count: 1,
         tokens,
         toolCount: isTool ? 1 : 0,
+        userTurnCount: isUserTurn ? 1 : 0,
         images: attachments.images,
         files: attachments.files
       };
@@ -7491,6 +8431,7 @@ function compressibleSegmentsOf(session, fromIndex, toIndex, protectedSeqs, medi
       current.count += 1;
       current.tokens += tokens;
       current.toolCount += isTool ? 1 : 0;
+      current.userTurnCount += isUserTurn ? 1 : 0;
       current.images += attachments.images;
       current.files += attachments.files;
     }
@@ -7528,7 +8469,8 @@ function buildCompressibleSeqRanges(session, kernelView, opts = {}) {
           tokens: segment.tokens,
           toolPct: segment.count > 0 ? Math.round(segment.toolCount / segment.count * 100) : 0,
           images: segment.images,
-          files: segment.files
+          files: segment.files,
+          userTurns: segment.userTurnCount
         });
       } catch {
       }
@@ -7781,7 +8723,10 @@ function kernelConfigFor(input) {
   if (input.nudgeMinContextLimitPct !== void 0) nudgePatch.minContextLimitPct = input.nudgeMinContextLimitPct;
   if (input.nudgeMaxContextLimitPct !== void 0) nudgePatch.maxContextLimitPct = input.nudgeMaxContextLimitPct;
   if (input.nudgeEmergencyThresholdPct !== void 0) nudgePatch.emergencyThresholdPct = input.nudgeEmergencyThresholdPct;
-  const overrides = { ...input.coreOverrides };
+  const overrides = {
+    ...input.userVerbatimKeep !== void 0 ? { userVerbatimKeep: input.userVerbatimKeep } : {},
+    ...input.coreOverrides
+  };
   if (Object.keys(nudgePatch).length > 0 || input.coreOverrides?.nudge) {
     overrides.nudge = {
       ...defaultConfig(input.modelContextLimit).nudge,
@@ -7808,7 +8753,7 @@ var NUDGE_ALLOWED = {
 var RANGE_TABLE_ALLOWED = {
   header: /* @__PURE__ */ new Set(["surface"]),
   title: /* @__PURE__ */ new Set(["count"]),
-  line: /* @__PURE__ */ new Set(["start", "end", "count", "tokens", "toolPct", "textPct", "media"]),
+  line: /* @__PURE__ */ new Set(["start", "end", "count", "tokens", "toolPct", "textPct", "media", "composition"]),
   footer: /* @__PURE__ */ new Set()
 };
 var TOOLS_ALLOWED = {
@@ -7885,7 +8830,7 @@ var DEFAULT_PROMPTS = {
   rangeTable: {
     header: "Surface: {surface}",
     title: "Compressible ranges ({count}, oldest first; exact surface seqs \u2014 usable as-is):",
-    line: "  - seq {start}..{end} \u2014 {count} messages, ~{tokens} tokens [tool {toolPct}% | text {textPct}%]{media}",
+    line: "  - seq {start}..{end} \u2014 {count} messages, ~{tokens} tokens [tool {toolPct}% | text {textPct}%]{media}{composition}",
     footer: "Compress with: compress({ content: [{ startSeq, endSeq, summary }] }) \u2014 content is an array: batch multiple unrelated segments in one call, each entry its own block. Keep ranges disjoint.\nSnapshot taken at nudge time: the seqs go stale once the surface moves (a later compress shadows them), so re-run acp_status for fresh refs before compressing.\nBefore you compress any row above, confirm it is truly consumed \u2014 if a span still holds live task state (where you are in the task / open TODOs, paths already ruled out, artifacts already done and where they live), carry that state into your summary or keep the span live. Compressing an in-progress span without carrying its state forces a full re-run afterward."
   },
   tools: {
@@ -7959,6 +8904,11 @@ function mediaSuffixOf(range) {
   if (range.files > 0) parts.push(`+${range.files} file${range.files === 1 ? "" : "s"}`);
   return ` [${parts.join(" | ")}]`;
 }
+function compositionSuffixOf(range) {
+  const turns = range.userTurns;
+  if (typeof turns !== "number" || !Number.isFinite(turns) || turns <= 0) return "";
+  return ` | user ${turns}`;
+}
 function meterMediaPriceResolver(agent, session) {
   let prices = null;
   return (seq) => {
@@ -7981,7 +8931,8 @@ function rangeTable(session, kernelView, prompts = DEFAULT_RESOLVED, mediaPriceO
       tokens: range.tokens,
       toolPct: range.toolPct,
       textPct: 100 - range.toolPct,
-      media: mediaSuffixOf(range)
+      media: mediaSuffixOf(range),
+      composition: compositionSuffixOf(range)
     })
   );
   return [
@@ -8025,7 +8976,7 @@ function buildNudge(agent, env, lastNudgeTurn, emergencyNudges, onEmergencyCapHi
   const state = env.store.stateFor(session);
   const coreMessages = allLogMessages(session);
   const surfaceEvents = surfaceEventsOf(session);
-  const surfaceMessages = eventsToCoreMessages(surfaceEvents);
+  const surfaceMessages = surfaceCoreMessages(surfaceEvents);
   const tokenCount = measuredTokenCount(agent, surfaceMessages);
   const config = kernelConfigFor(env);
   const turn = env.kernel.processTurn({ messages: coreMessages, state, config, tokenCount });
@@ -8033,7 +8984,7 @@ function buildNudge(agent, env, lastNudgeTurn, emergencyNudges, onEmergencyCapHi
   const nudge = turn.nudge;
   if (nudge === void 0 || !nudge.shouldInject) return null;
   const mediaPriceOf = meterMediaPriceResolver(agent, session);
-  const statusMessages = eventsToCoreMessages(
+  const statusMessages = surfaceCoreMessages(
     surfaceEvents.filter((event) => isCheckpointNode(event) === false)
   );
   nudge.contextBreakdown = computeSurfaceBreakdown(turn.state, statusMessages, tokenCount, nudge.contextBreakdown?.growth ?? 0);
@@ -8486,7 +9437,7 @@ function edgeRefForSeq(session, byRaw, seq, role, oppositeSeq) {
   return void 0;
 }
 function anchorRefForNode(session, byRaw, seq, role) {
-  const direct = byRaw[String(seq)];
+  const direct = liveRefOf(byRaw, String(seq));
   if (direct !== void 0) return direct;
   const event = eventAtOf(session, seq);
   if (event?.type !== "assistant/message") return void 0;
@@ -8506,7 +9457,7 @@ async function handleCompress(env, args, exec) {
   stripOrphanedSurfaceToolMessages(session, openToolCallIds(session));
   const state = env.store.stateFor(session);
   const coreMessages = allLogMessages(session);
-  const surfaceMessages = eventsToCoreMessages(surfaceEventsOf(session));
+  const surfaceMessages = surfaceCoreMessages(surfaceEventsOf(session));
   const tokenCount = resolveTokenCount(agent, surfaceMessages);
   const window = await resolveEffectiveWindow(env, agent);
   const config = kernelConfigFor({ ...env, modelContextLimit: window.limit });
@@ -8864,16 +9815,21 @@ async function handleStatus(env, rawArgs, exec) {
   const surface = surfaceEventsOf(session);
   const toolNames = buildToolCallIndex(surface);
   const coreMessages = allLogMessages(session);
-  const surfaceMessages = eventsToCoreMessages(surface, toolNames);
+  const surfaceMessages = surfaceCoreMessages(surface, toolNames);
   const tokenCount = resolveTokenCount(agent, surfaceMessages);
   const window = await resolveEffectiveWindow(env, agent);
   const config = kernelConfigFor({ ...env, modelContextLimit: window.limit });
   const turn = env.kernel.processTurn({ messages: coreMessages, state, config, tokenCount });
-  const statusMessages = eventsToCoreMessages(
+  const statusMessages = surfaceCoreMessages(
     surface.filter((event) => isCheckpointNode(event) === false),
     toolNames
   );
-  const report = buildStatusReport(turn.state, statusMessages, defaultCountTokens, args);
+  const report = buildStatusReport(turn.state, statusMessages, defaultCountTokens, {
+    ...args,
+    // 用户消息保护口径必须让模型看见：acp_status 是它决定「压哪一段」的依据，
+    // 不知道 user 消息受保护就会反复构造出必然被拒的范围。
+    userVerbatimKeep: config.userVerbatimKeep ?? 0
+  });
   const lines = [report];
   if (args.scope === void 0) {
     const nudge = turn.nudge;
@@ -8955,13 +9911,25 @@ var SETTINGS_KEYS = [
   "nudgeMinContextLimitPct",
   "nudgeMaxContextLimitPct",
   "nudgeEmergencyThresholdPct",
-  "autoNudge"
+  "autoNudge",
+  "userVerbatimKeep"
 ];
 var SETTING_DEFAULTS = {
   autoModelContextLimit: true,
   nudgeMaxContextLimitPct: 0.7,
   nudgeEmergencyThresholdPct: 0.85,
-  autoNudge: true
+  autoNudge: true,
+  /**
+   * 宿主默认走**方案 B 逃生阀**（最近 12 条 user 原文保留，更老的允许进 T3）。
+   *
+   * 与内核 `defaultConfig.userVerbatimKeep = 0`（方案 A）**刻意不同层**：
+   * - 内核层默认 0 —— RL-6 要求内核默认即方案 A，内核自身不得替使用方做取舍；
+   * - 宿主层默认 12 —— 宿主的压缩单元是「会话跨度」，而真实跨度天然包含旧 user 轮。
+   *   若宿主也取 0，任何含 user 轮的跨度都会被内核硬拒，压缩能力直接归零
+   *   （2026-10-27 实测：bcdsh 从 404 pass 掉到 73 fail）。
+   * 12 是计划书给的暂定起点，修订触发：TASK-5 引用保真门的回归数据。
+   */
+  userVerbatimKeep: 12
 };
 function filterSettingsEntry(entry) {
   return {
@@ -8970,7 +9938,8 @@ function filterSettingsEntry(entry) {
     ...entry.nudgeMinContextLimitPct !== void 0 ? { nudgeMinContextLimitPct: entry.nudgeMinContextLimitPct } : {},
     ...entry.nudgeMaxContextLimitPct !== void 0 ? { nudgeMaxContextLimitPct: entry.nudgeMaxContextLimitPct } : {},
     ...entry.nudgeEmergencyThresholdPct !== void 0 ? { nudgeEmergencyThresholdPct: entry.nudgeEmergencyThresholdPct } : {},
-    ...entry.autoNudge !== void 0 ? { autoNudge: entry.autoNudge } : {}
+    ...entry.autoNudge !== void 0 ? { autoNudge: entry.autoNudge } : {},
+    ...entry.userVerbatimKeep !== void 0 ? { userVerbatimKeep: entry.userVerbatimKeep } : {}
   };
 }
 var VOLATILE_WRITE = /* @__PURE__ */ Symbol.for("cosmokit.volatile.write");
@@ -8996,7 +9965,8 @@ function resolveAcpSettings(input) {
     nudgeMinContextLimitPct: input.nudgeMinContextLimitPct,
     nudgeMaxContextLimitPct: input.nudgeMaxContextLimitPct ?? SETTING_DEFAULTS.nudgeMaxContextLimitPct,
     nudgeEmergencyThresholdPct: input.nudgeEmergencyThresholdPct ?? SETTING_DEFAULTS.nudgeEmergencyThresholdPct,
-    autoNudge: input.autoNudge ?? SETTING_DEFAULTS.autoNudge
+    autoNudge: input.autoNudge ?? SETTING_DEFAULTS.autoNudge,
+    userVerbatimKeep: input.userVerbatimKeep ?? SETTING_DEFAULTS.userVerbatimKeep
   };
 }
 var AcpSettingsSchema = z.object({
@@ -9005,7 +9975,13 @@ var AcpSettingsSchema = z.object({
   nudgeMinContextLimitPct: z.number().min(0).max(1),
   nudgeMaxContextLimitPct: z.number().min(0).max(1).default(SETTING_DEFAULTS.nudgeMaxContextLimitPct),
   nudgeEmergencyThresholdPct: z.number().min(0).max(1).default(SETTING_DEFAULTS.nudgeEmergencyThresholdPct),
-  autoNudge: z.boolean().default(SETTING_DEFAULTS.autoNudge)
+  autoNudge: z.boolean().default(SETTING_DEFAULTS.autoNudge),
+  // 无 .default()：默认值由 SETTING_DEFAULTS 单点提供（同 modelContextLimit 的写法）。
+  // `.description()` 是给人看的口径说明：容量单位是「role=user 的消息条数」，不是 token、
+  // 也不是 turn 总数（一条用户输入 = 一条 user 消息；同 turn 内插话各占一格）。
+  userVerbatimKeep: z.number().step(1).min(0).description(
+    "\u6700\u8FD1 N \u6761\u7528\u6237\u8F93\u5165\u7684\u6D88\u606F\u539F\u6587\u6C38\u4E45\u4FDD\u7559\u3001\u4E0D\u8FDB\u538B\u7F29\uFF1B0 = \u5168\u90E8\u7528\u6237\u8F93\u5165\u539F\u6587\u4FDD\u7559\uFF08\u538B\u7F29\u4F59\u91CF\u6700\u5C0F\uFF09"
+  )
 });
 function markVolatile(schema) {
   const capable = schema;
@@ -9017,7 +9993,12 @@ var AcpPluginConfigSchema = z.object({
   nudgeMinContextLimitPct: markVolatile(z.number().min(0).max(1)),
   nudgeMaxContextLimitPct: markVolatile(z.number().min(0).max(1)),
   nudgeEmergencyThresholdPct: markVolatile(z.number().min(0).max(1)),
-  autoNudge: markVolatile(z.boolean())
+  autoNudge: markVolatile(z.boolean()),
+  userVerbatimKeep: markVolatile(
+    z.number().step(1).min(0).description(
+      "\u6700\u8FD1 N \u6761\u7528\u6237\u8F93\u5165\u7684\u6D88\u606F\u539F\u6587\u6C38\u4E45\u4FDD\u7559\u3001\u4E0D\u8FDB\u538B\u7F29\uFF1B0 = \u5168\u90E8\u7528\u6237\u8F93\u5165\u539F\u6587\u4FDD\u7559\uFF08\u538B\u7F29\u4F59\u91CF\u6700\u5C0F\uFF09"
+    )
+  )
 });
 function describeSettingsChange(prev, next) {
   const warnings = [];
@@ -9029,6 +10010,13 @@ function describeSettingsChange(prev, next) {
   if (next.nudgeMaxContextLimitPct >= next.nudgeEmergencyThresholdPct) {
     warnings.push(
       `nudgeMaxContextLimitPct (${next.nudgeMaxContextLimitPct}) >= nudgeEmergencyThresholdPct (${next.nudgeEmergencyThresholdPct}) \u2014 the emergency tier loses its headroom`
+    );
+  }
+  const prevKeep = prev.userVerbatimKeep ?? 0;
+  const nextKeep = next.userVerbatimKeep ?? 0;
+  if (prevKeep === 0 && nextKeep > 0) {
+    warnings.push(
+      `userVerbatimKeep 0 \u2192 ${nextKeep}: older user messages may now enter T3 \u2014 quote fidelity then depends on the reference-fidelity gate`
     );
   }
   return {
@@ -9140,7 +10128,7 @@ async function statusText(env, agent) {
   const ledger = rebuildBlockLedger(sessionEventsOf(session));
   const totalTokens = ledger.reduce((sum, block) => sum + block.shadowedTokenCount, 0);
   const coreMessages = allLogMessages(session);
-  const surfaceMessages = eventsToCoreMessages(surfaceEventsOf(session));
+  const surfaceMessages = surfaceCoreMessages(surfaceEventsOf(session));
   const estimated = resolveTokenCount(agent, surfaceMessages);
   const window = await resolveEffectiveWindow(env, agent);
   const limit = window.limit;
@@ -9310,6 +10298,9 @@ function configListText(surface) {
     lines.push(`  ${key.padEnd(27)} ${formatSettingsValue(key, snapshot[key]).padEnd(12)} ${source}`);
   }
   lines.push("", "  changes apply to running sessions immediately (no restart)");
+  lines.push(
+    "  userVerbatimKeep counts role=user message rows (one per user input): 0 = every user input stays verbatim, N = the last N"
+  );
   lines.push("  coreOverrides (composition layer) merge LAST and beat these values on same-name keys");
   lines.push("  /acp-prune config reset <key> returns the key to the composition row / engine default");
   return lines.join("\n");
@@ -9403,7 +10394,11 @@ var DEFAULT_CONFIG = {
   // against these defaults — `coreOverrides` merges last and beats them on
   // same-name keys.
   nudgeMaxContextLimitPct: 0.7,
-  nudgeEmergencyThresholdPct: 0.85
+  nudgeEmergencyThresholdPct: 0.85,
+  // 宿主默认走方案 B 逃生阀（最近 12 条 user 原文保留）。内核默认仍是 0（方案 A），
+  // 两层差异的原因见 src/settings.ts 的 SETTING_DEFAULTS 注释：宿主的压缩单元是
+  // 包含旧 user 轮的会话跨度，取 0 会让压缩能力归零。
+  userVerbatimKeep: 12
 };
 function resolveAcpConfig(config = {}) {
   const resolved = resolvePresetThresholds({ ...DEFAULT_CONFIG, ...config }, config);
@@ -9590,6 +10585,14 @@ var AcpCompactionEngine = class extends CompactionEngine {
       get nudgeEmergencyThresholdPct() {
         return engine.readSettingsSource().nudgeEmergencyThresholdPct;
       },
+      // 用户消息原文保留条数同样必须走「LIVE 读取」：漏掉这一行会让
+      // AcpConfig.userVerbatimKeep 变成死键 —— pre-step 与 compactForOverflow
+      // 都是 kernelConfigFor({ ...this.env }) 建配置，env 上没有这个键就只剩
+      // coreOverrides 能改它，插件配置里写的值会被静默忽略，内核永远退回
+      // defaultConfig 的 0（方案 A 全保护）。
+      get userVerbatimKeep() {
+        return engine.readSettingsSource().userVerbatimKeep;
+      },
       coreOverrides: this.config.coreOverrides,
       // Display-only: which named preset produced the thresholds above (if any),
       // so /acp-prune status can name it. The resolved pct values above are what the
@@ -9651,6 +10654,7 @@ var AcpCompactionEngine = class extends CompactionEngine {
     });
     ctx.on("agent/pre-step", async (payload, next) => {
       stripOrphanedSurfaceToolMessages(payload.agent.session);
+      traceSessionEvents(payload.agent.session);
       engine.resyncSettings();
       if (!engine.readSettingsSource().autoNudge) return next();
       const decision = await next();
@@ -9852,7 +10856,7 @@ var AcpCompactionEngine = class extends CompactionEngine {
     const session = agent.session;
     const state = this.store.stateFor(session);
     const coreMessages = allLogMessages(session);
-    const surfaceMessages = eventsToCoreMessages(surfaceEventsOf(session));
+    const surfaceMessages = surfaceCoreMessages(surfaceEventsOf(session));
     const tokenCount = resolveTokenCount(agent, surfaceMessages);
     const window = await this.windowFor(agent);
     const config = kernelConfigFor({ ...this.env, modelContextLimit: window.limit });
@@ -9862,13 +10866,13 @@ var AcpCompactionEngine = class extends CompactionEngine {
     let firstSeq;
     let lastSeq;
     for (const seq of session.surface.nodes) {
-      if (byRaw[String(seq)] === void 0) continue;
+      if (liveRefOf(byRaw, String(seq)) === void 0) continue;
       firstSeq ??= seq;
       lastSeq = seq;
     }
     if (firstSeq === void 0 || lastSeq === void 0) return null;
     const view = {
-      ranges: [{ startRef: byRaw[String(firstSeq)], endRef: byRaw[String(lastSeq)] }],
+      ranges: [{ startRef: liveRefOf(byRaw, String(firstSeq)), endRef: liveRefOf(byRaw, String(lastSeq)) }],
       refs: { byRef: turn.state.messageRefs.byRef }
     };
     const ranges = buildCompressibleSeqRanges(session, view, {
@@ -9877,8 +10881,8 @@ var AcpCompactionEngine = class extends CompactionEngine {
     });
     if (ranges.length === 0) return null;
     const best = ranges.reduce((largest, range) => range.tokens > largest.tokens ? range : largest);
-    const startRef = byRaw[String(best.start)];
-    const endRef = byRaw[String(best.end)];
+    const startRef = liveRefOf(byRaw, String(best.start));
+    const endRef = liveRefOf(byRaw, String(best.end));
     if (startRef === void 0 || endRef === void 0) return null;
     const summary = overflowMarkerSummary(best.count);
     const applied = this.kernel.applyCompression({
@@ -9959,6 +10963,7 @@ export {
   blockRegistry,
   buildNudge,
   compactionIdsOfKernelBlocks,
+  dedupeSupersededSnapshots,
   index_default as default,
   describeSettingsChange,
   detectContextWindow,
@@ -9990,6 +10995,7 @@ export {
   shadowedSeqsOf,
   stripOrphanedSurfaceToolMessages,
   summarySeqOfKernelBlock,
+  surfaceCoreMessages,
   surfaceEventsOf,
   unwrapVolatile,
   windowSourceLabel

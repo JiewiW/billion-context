@@ -10,7 +10,7 @@
  * 'user/message' | 'assistant/message' | 'tool/result').
  * @module billion-context-pi-dsh/messages
  */
-import type { CoreMessage } from 'acp-kernel';
+import type { CoreMessage, MessageProvenance } from 'acp-kernel';
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session';
 declare module '@deepseek-ai/dsh-llm' {
     interface MessageSourceMap {
@@ -150,6 +150,19 @@ export declare function kernelBlockIdByCompactionId(events: readonly SessionEven
 export declare function projectEvent(event: SessionEvent, toolNames?: ReadonlyMap<string, string>, kernelBlockIds?: ReadonlyMap<string, string>): CoreMessage[];
 /** Project a session's message events into CoreMessage[] in log order. */
 export declare function eventsToCoreMessages(events: readonly SessionEvent[], toolNames?: ReadonlyMap<string, string>): CoreMessage[];
+/**
+ * 折叠被后续快照完全覆盖的旧快照行（保留每个指纹的最后一条）。
+ * 无快照时原样返回新数组（不共享引用，调用方可安全排序）。
+ */
+export declare function dedupeSupersededSnapshots(messages: readonly CoreMessage[]): CoreMessage[];
+/**
+ * 发给模型的 surface 视图 = 全量投影 + 快照折叠。
+ *
+ * 所有消费者（pre-step 压缩、nudge 范围表、compress/status 工具）都必须走这一个
+ * 入口，否则「ref 表里有的消息模型看不到」「模型看到的消息 ref 表里没有」两类
+ * 错位会同时出现。
+ */
+export declare function surfaceCoreMessages(events: readonly SessionEvent[], toolNames?: ReadonlyMap<string, string>): CoreMessage[];
 /** The surface-visible message events of a session, in model-visible order. */
 export declare function surfaceEventsOf(session: Session): SessionEvent[];
 /**
@@ -301,6 +314,21 @@ export declare function isAgentInstructionsRow(event: SessionEvent): boolean;
 export declare function isSkillCatalogRow(event: SessionEvent): boolean;
 export declare function classifySurfaceEvent(event: SessionEvent): SurfaceEventClass;
 /**
+ * 分类一条 `agent/inbox/spliced` 通道插入的消息。
+ *
+ * 这个通道的 `data.inserted` 元素是**消息对象**（`{id, role, content, source}`），
+ * 不是 surface 事件，所以它永远走不到 `classifySurfaceEvent` —— 线上活采集
+ * 原先整条漏掉这个通道（5a 报告 §5.2 记的未做项）。
+ *
+ * 要给它同样的四分类口径，就把它构造成等价的 `user/message` 形状再过一次
+ * 分类器 —— 这正是回放脚本 `case/replay-trace.ts` 的做法，两边口径因此一致。
+ *
+ * 用 `classifySurfaceEventRaw` 而不是 `classifySurfaceEvent`：后者会回头调
+ * 插桩，插桩再调这里就是无限递归。
+ */
+export declare function classifyInjectedMessage(message: unknown): SurfaceEventClass;
+export declare function traceSessionEvents(session: Session): void;
+/**
  * Whether an event is a real user turn — the protected-tail criterion. An
  * injected row (AGENTS.md, skill catalog, nudge echo, tool notice) is real
  * *content* at most but is never the user speaking: the latest real user
@@ -311,4 +339,86 @@ export declare function classifySurfaceEvent(event: SessionEvent): SurfaceEventC
  * message was left compressible while synthetic output sat safe.
  */
 export declare function isRealUserTurn(event: SessionEvent): boolean;
+/** 长度门槛，与 acpk 的 `QUOTE_LONG_CHARS` 对齐：短消息不存在"材料"问题。 */
+export declare const MATERIAL_MIN_CHARS = 500;
+/** 行数门槛：单行的长报错不算材料（它没有"正文 + 说明"的两层结构）。 */
+export declare const MATERIAL_MIN_LINES = 6;
+/**
+ * 结构化行占比门槛：低于此说明主体是散文，是用户在说话。
+ *
+ * 2026-10-29 实测修正：任务卡正文全是 `# 标题` / `- 条目` 行，**句子**占比很低
+ * 但**结构**占比很高（实测 0.88）。旧口径用"结构化行数 / 非空行数"，对
+ * 「一句说明 + 一大段排版」的任务卡仍会误判成散文 —— 改成按**带标点的散文句**
+ * 反推：只有当散文行确实占多数时才判不是材料。
+ */
+export declare const MATERIAL_STRUCTURE_RATIO = 0.5;
+/**
+ * 指令标记密度（个 / 1000 字符）—— **仅供诊断**，不再参与材料判定。
+ *
+ * ⚠️ 2026-10-29 实测修正：任务卡正文本身满是「必须/不得」（实测密度 3.0–3.5），
+ * 但那是**文档内容**不是用户在下命令。旧口径只看密度，把任务卡判成"不是材料"，
+ * 于是保真门去查文档正文里的「不得碰（C5-9）」→ 14 条误报。
+ * 修正：密度高**不再单独否决**，只有当**开头像用户在对模型说话**时才否决。
+ */
+export declare const MATERIAL_MAX_DIRECTIVE_DENSITY = 3;
+/**
+ * 散文句占比上限：超过它说明用户在跟模型说话，不是在贴材料。
+ *
+ * 实测：任务卡 / 堆栈粘贴 / 日志粘贴的散文句占比都在 0.1 以下；
+ * 用户自己写的长清单（编号 + 每行「必须/不得」）会超过这个比例 ——
+ * 那正是 D-9D 要收回严档的场景，不该判成材料。
+ */
+export declare const MATERIAL_PROSE_MAX_RATIO = 0.5;
+/**
+ * 粘贴痕迹占比下限：堆栈 / 日志 / 代码围栏这类整段粘贴的内容。
+ *
+ * 它们既不是 Markdown 标题（抓不到结构占比），也不含散文句。
+ * 靠"这种行占非空行的多少"来认 —— 实测堆栈粘贴占比 0.3 以上。
+ */
+export declare const MATERIAL_PASTE_ARTIFACT_RATIO = 0.3;
+/**
+ * 混合形态判定（2026-10-29 二补，根因③残留）：「一两句用户说明 + 大段粘贴正文」。
+ * SG-11 实测 7 条漏判（S033/S035/S039/S041/S053 等）全属此类 —— 首行是用户在说话
+ * （「你帮我看看这个报错」「只做一件事：…」），正文却是堆栈 / 报错 / 宿主 UI 回显。
+ * 旧口径首行命中直接称呼就一票否决，S035 这种正文挤在 3 行里的还过不了行数门槛。
+ *
+ * 修正：判定改为**按正文主导** —— 剥离开头的散文说明行后，只要正文是"非散文行
+ * 占绝对多数"的大段内容，就判材料。首行的直接称呼不再否决粘贴为主的正文：
+ * AC-8.2 保的正是"外面那句"，正文本来就不要求逐字。
+ */
+/** 开头最多剥离的散文说明行数（说明通常 1–2 行）。 */
+export declare const MATERIAL_HEADER_PROSE_MAX_LINES = 3;
+/** 正文中散文行占比上限：超过说明用户自己在正文里说话，不是粘贴。 */
+export declare const MATERIAL_BODY_PROSE_MAX_RATIO = 0.25;
+/** 粘贴正文的最小体量：字符数、非空行数、占全文字符的比例。 */
+export declare const MATERIAL_BODY_MIN_CHARS = 300;
+export declare const MATERIAL_BODY_MIN_LINES = 2;
+export declare const MATERIAL_BODY_CHARS_RATIO = 0.5;
+/** 这条消息的硬约束密度（个 / 1000 字符）。仅供诊断与报告引用。 */
+export declare function materialDirectiveDensity(text: string): number;
+/**
+ * 这条用户消息是不是"贴进来的材料"（TASK-8）。**只看文本**，不看粘贴事件。
+ *
+ * 五个条件全部满足才算材料：够长、够多行、主体是结构化排版、开头不像在跟模型
+ * 说话、通篇硬约束密度低。任一条不满足 → 用户本人在说话（`user-turn`）。
+ *
+ * 2026-10-29 按 SG-11 的量化结果修正（原材料判据 P=0.93 / **R=0.45**，漏判 16 条）：
+ *   - **文档头标记**（`【目标文档】` / `# 任务卡…`）→ 直接判材料，不再被密度否决。
+ *     任务卡正文满是「必须/不得」，那是**文档内容**，不是用户在下命令。
+ *   - **散文句占比**取代"结构化行数占比"作否决依据：任务卡的散文句很少
+ *     （正文全是 `#`/`-`/表格行），用户在外面裹的说明才是散文句。
+ *     「一句说明 + 一大段排版」的老口径会误判成散文 —— 现在不会了。
+ *   - 堆栈/日志/代码围栏这类**粘贴痕迹**单独识别：它们不含散文句，
+ *     但也不是 Markdown 标题，靠结构占比抓不住。
+ */
+export declare function isMaterialUserText(text: string): boolean;
+/**
+ * 一条 surface 事件的来源标签（TASK-7）。映射自 `classifySurfaceEvent` 的四分类
+ * 再加上来源细看，得到设计文档 §3.2 的七值。
+ *
+ * 用 `classifySurfaceEventRaw` 而不是 `classifySurfaceEvent`：后者会触发插桩写盘，
+ * 而投影路径每轮都跑，插桩由宿主 `agent/pre-step` 的 `traceSessionEvents` 统一
+ * 扫一遍（TASK-3 的口径），这里再写就是算两遍。
+ */
+export declare function provenanceOfEvent(event: SessionEvent, text: string): MessageProvenance;
 export {};

@@ -45,7 +45,7 @@ export { acpCommand } from './commands.ts';
 export { buildNudge, resolveTokenCount, EMERGENCY_NUDGE_MAX_PER_TURN, type NudgeEnvironment, type NudgeOutcome } from './nudge.ts';
 export { DEFAULT_CONTEXT_WINDOW, detectContextWindow, projectedContextWindow, windowSourceLabel, type AcpWindow, } from './window.ts';
 export { AlreadyCompressedRangeError, rebuildBlockLedger, resolveSurfaceRange, runCompactionTransaction, shadowedSeqsOf, findOpenTurn, assertNoActiveCompaction, blockRegistry, blockRefForSummarySeq, compactionIdsOfKernelBlocks, summarySeqOfKernelBlock, expandShadowedSeqs, hideCompressToolPair, stripOrphanedSurfaceToolMessages, type AcpBlockLedgerEntry, type CompactionTransactionInput, type ResolvedSurfaceRange, } from './region.ts';
-export { eventsToCoreMessages, projectEvent, surfaceEventsOf, extractEventText } from './messages.ts';
+export { dedupeSupersededSnapshots, eventsToCoreMessages, projectEvent, surfaceCoreMessages, surfaceEventsOf, extractEventText, } from './messages.ts';
 export { ACP_SETTINGS_NAMESPACE, AcpPluginConfigSchema, AcpSettingsSchema, describeSettingsChange, filterSettingsEntry, isVolatileRef, liveSettingsFromRefs, makeSettingsCommandSurface, parseSettingValue, resolveAcpSettings, SETTINGS_KEYS, SETTING_DEFAULTS, unwrapVolatile, VOLATILE_WRITE, type AcpSettings, type AcpSettingsDescriptor, type AcpSettingsInput, type AcpSettingsService, type LegacySettingsService, type SettingsChangeEffect, type SettingsCommandSurface, type SettingsKey, } from './settings.ts';
 export interface AcpConfig {
     /**
@@ -78,6 +78,12 @@ export interface AcpConfig {
      * 80% compaction-basic line shadows it in standard/code/cordis modes).
      */
     readonly nudgeEmergencyThresholdPct?: number;
+    /**
+     * 用户消息原文保留条数。0（引擎默认，与内核 `defaultConfig` 镜像）= 方案 A：
+     * 全部 user 消息原文保留、永不进压缩范围；N>0 = 方案 B 逃生阀：只保留最近 N 条，
+     * 更老的允许进 T3（仍须过引用保真门）。与 `preserveRecentMessages` 不同轴。
+     */
+    readonly userVerbatimKeep?: number;
     /**
      * Named bundle for the three nudge thresholds — how eagerly the model is
      * asked to compress, in one word. One of 'preserve' | 'relaxed' | 'balanced'
@@ -158,6 +164,7 @@ export declare class AcpCompactionEngine extends CompactionEngine {
         nudgeMaxContextLimitPct: import("@deepseek-ai/schemastery").default<number, number, "plain">;
         nudgeEmergencyThresholdPct: import("@deepseek-ai/schemastery").default<number, number, "plain">;
         autoNudge: import("@deepseek-ai/schemastery").default<boolean, boolean, "plain">;
+        userVerbatimKeep: import("@deepseek-ai/schemastery").default<number, number, "plain">;
     }>>, Schemastery.ObjectT<NoInfer<{
         modelContextLimit: import("@deepseek-ai/schemastery").default<number, number, "plain">;
         autoModelContextLimit: import("@deepseek-ai/schemastery").default<boolean, boolean, "plain">;
@@ -165,6 +172,7 @@ export declare class AcpCompactionEngine extends CompactionEngine {
         nudgeMaxContextLimitPct: import("@deepseek-ai/schemastery").default<number, number, "plain">;
         nudgeEmergencyThresholdPct: import("@deepseek-ai/schemastery").default<number, number, "plain">;
         autoNudge: import("@deepseek-ai/schemastery").default<boolean, boolean, "plain">;
+        userVerbatimKeep: import("@deepseek-ai/schemastery").default<number, number, "plain">;
     }>>, "plain">;
     /** The framework-agnostic ACP compression core, reused verbatim. */
     readonly kernel: CompressionCore;

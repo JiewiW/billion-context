@@ -23,6 +23,8 @@ export interface KernelConfigInput {
     readonly nudgeMaxContextLimitPct?: number;
     /** Emergency nudge threshold (bypasses per-turn dedup; capped at 3 injections per user turn — issue #108). Kernel default: 0.95. */
     readonly nudgeEmergencyThresholdPct?: number;
+    /** 用户消息原文保留条数：0（默认）= 全部 user 消息原文保留、永不进压缩范围；N>0 = 只保留最近 N 条，更老的允许进 T3。Kernel default: 0. */
+    readonly userVerbatimKeep?: number;
     /** Any other acp-kernel Config override (the billion-context-pi escape hatch). */
     readonly coreOverrides?: Partial<Config>;
 }
