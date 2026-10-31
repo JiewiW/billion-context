@@ -1,5 +1,5 @@
 /**
- * Checkpoint source dual-shape compatibility (billion-context-dsh#168).
+ * Checkpoint source dual-shape compatibility (billion-context#168).
  *
  * DSH 0.1.7 changed what the host stamps on checkpoint summary nodes:
  * `@deepseek-ai/dsh-compaction@0.1.7-alpha.1`'s `compactCheckpointSource()`

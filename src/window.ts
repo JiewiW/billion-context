@@ -12,7 +12,7 @@
  * `context_window`/`context_length` during discovery) plus the output cap it
  * applies when callers omit one. Probing is a standalone capability query —
  * no request is sent.
- * @module billion-context-dsh/window
+ * @module billion-context/window
  */
 
 import type { Agent } from '@deepseek-ai/dsh-agent'

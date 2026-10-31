@@ -1,4 +1,4 @@
-# Contributing — billion-context-dsh
+# Contributing — billion-context
 
 > The full development specification lives in [AGENTS.md](AGENTS.md) (highest priority). This file covers the collaboration workflow only.
 
@@ -70,7 +70,7 @@ See AGENTS.md §5: `npm version` bump → sync version refs in docs → `npm pub
 
 ## Issue triage automation (labels → Roadmap project)
 
-`.github/workflows/issue-triage.yml` keeps the GitHub Project「billion-context-dsh Roadmap」in sync with issue labels:
+`.github/workflows/issue-triage.yml` keeps the GitHub Project「billion-context Roadmap」in sync with issue labels:
 
 - **sync job** — when an issue is opened, labeled, or unlabeled, it is added to project #1 (idempotently), and the label currently applied maps to project fields: `priority: P0/P1/P2/backlog` → the Priority single-select field; `upstream-pending` → a pointer in the Upstream text field (see `docs/upstream-tracker.md`). Only the label from the triggering event is synced — other labels are left untouched.
 - **watch-upstream job** — a daily cron compares the upstream PRs referenced in `docs/upstream-tracker.md` and in issue bodies (links of the form `acp-kernel/pull/<n>`); when an upstream PR is merged, the issue gets the `upstream-merged` label and an SOP comment. Requires `docs/upstream-tracker.md` to exist (skipped otherwise).

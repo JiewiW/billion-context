@@ -58,7 +58,7 @@ test('sourcePluginOf parses both durable source shapes, conservatively', () => {
   assert.equal(sourcePluginOf({ kind: 'plugin', plugin: '' }), undefined)
   assert.equal(sourcePluginOf({ kind: 'plugin', plugin: 42 }), undefined)
   // V4 producer kind.
-  assert.equal(sourcePluginOf({ kind: 'plugin:billion-context-dsh' }), 'billion-context-dsh')
+  assert.equal(sourcePluginOf({ kind: 'plugin:billion-context' }), 'billion-context')
   assert.equal(sourcePluginOf({ kind: 'plugin:@deepseek-ai/dsh-system-prompt' }), '@deepseek-ai/dsh-system-prompt')
   assert.equal(sourcePluginOf({ kind: 'plugin:' }), undefined)
   // Unrelated kinds carry no plugin name.
@@ -72,8 +72,8 @@ test('classifySurfaceEvent: engine metadata rows bucket identically in both shap
   const seqs = [
     appendWithSource(session, { kind: 'plugin', plugin: 'acp-nudge' }),
     appendWithSource(session, { kind: 'plugin:acp-nudge' }),
-    appendWithSource(session, { kind: 'plugin', plugin: 'billion-context-dsh' }),
-    appendWithSource(session, { kind: 'plugin:billion-context-dsh' }),
+    appendWithSource(session, { kind: 'plugin', plugin: 'billion-context' }),
+    appendWithSource(session, { kind: 'plugin:billion-context' }),
   ]
   for (const seq of seqs) {
     assert.equal(classifySurfaceEvent(sessionEventsOf(session)[seq]!), 'metadata', `seq ${seq}`)
@@ -179,7 +179,7 @@ test('the prune tombstone persists with the V4 producer kind', () => {
   )
   assert.equal(tombstones.length, 1, 'one prune-note row was written')
   for (const tombstone of tombstones) {
-    assert.deepEqual((tombstone.data as { source?: unknown }).source, { kind: 'plugin:billion-context-dsh' })
+    assert.deepEqual((tombstone.data as { source?: unknown }).source, { kind: 'plugin:billion-context' })
     assert.equal(classifySurfaceEvent(tombstone), 'metadata')
     assert.equal(isRealUserTurn(tombstone), false)
   }

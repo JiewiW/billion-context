@@ -36,7 +36,7 @@ import { claimSplicedEvent, eventAlreadyTraced, messageAlreadyTraced, traceEnabl
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     acpNudge: { kind: 'plugin:acp-nudge' }
-    acpPrune: { kind: 'plugin:billion-context-dsh' }
+    acpPrune: { kind: 'plugin:billion-context' }
     // V4 checkpoint producer kind (issue #181): emitted by checkpointSourceFor
     // when the resolved dsh-compaction copy predates the host's v4 writer and
     // its wrapper-shaped compactCheckpointSource() output is normalized.
@@ -627,7 +627,7 @@ export type SurfaceEventClass = 'real' | 'metadata' | 'checkpoint' | 'instructio
 /** Plugin names the engine itself authors — safe to fold into real segments. */
 export const METADATA_PLUGINS: ReadonlySet<string> = new Set([
   'acp-nudge', // nudge echo (src/nudge.ts)
-  'billion-context-dsh', // compress-pair replacement stub (src/region.ts)
+  'billion-context', // compress-pair replacement stub (src/region.ts)
 ])
 
 /**

@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 
-// Git-source installs (`dsh plugin add github:Tyan66666/billion-context-dsh#<ref>`,
+// Git-source installs (`dsh plugin add github:Tyan66666/billion-context#<ref>`,
 // the form the plugin store shows) ship the repo verbatim: pnpm ≥10/11 blocks
 // dependency build scripts by default (`allowBuilds`), and for a git-hosted
 // package the approval key must contain the exact resolved commit hash

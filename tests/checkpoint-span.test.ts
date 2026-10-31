@@ -1,5 +1,5 @@
 /**
- * Cross-checkpoint spans (billion-context-dsh#155 review follow-up: "跨 checkpoint
+ * Cross-checkpoint spans (billion-context#155 review follow-up: "跨 checkpoint
  * 的 span 是否 barrier").
  *
  * Two contracts are pinned here:

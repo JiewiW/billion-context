@@ -1,5 +1,5 @@
 /**
- * billion-context-dsh — Active Context Pruning (ACP) for the DeepSeek Harness,
+ * billion-context — Active Context Pruning (ACP) for the DeepSeek Harness,
  * delivered as a `CompactionEngine` backend.
  *
  * The model decides when and what to compress (pure ACP semantics):
@@ -15,7 +15,7 @@
  *
  * ```yaml
  * - id: compaction-billion-context
- *   name: 'billion-context-dsh'
+ *   name: 'billion-context'
  *   config:
  *     modelContextLimit: 128000
  * ```
@@ -23,7 +23,7 @@
  * The package registers `ctx.compaction` plus the four model tools and the
  * `/acp-prune` command when the hosting composition provides `ctx.tools` /
  * `ctx.commands`.
- * @module billion-context-dsh
+ * @module billion-context
  */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -519,7 +519,7 @@ export class AcpCompactionEngine extends CompactionEngine {
         // The watcher callback runs inside the settings commit loop; a sync
         // throw must not escape into it (the loop logs and continues, but our
         // diff handler owns its failures — warn and keep the last good).
-        this.ctx.logger.warn(`billion-context-dsh: applying settings change failed: ${String(error)}`)
+        this.ctx.logger.warn(`billion-context: applying settings change failed: ${String(error)}`)
       }
     }
     this.resyncSettings = applySettings
@@ -598,7 +598,7 @@ export class AcpCompactionEngine extends CompactionEngine {
             const rows = (service.describe as AcpSettingsService['describe']).call(service)
             if (!rows.some((row) => String(row.ns) === ACP_SETTINGS_NAMESPACE)) {
               this.ctx.logger.warn(
-                'billion-context-dsh: SettingsForms is present but no profile entry named "compaction-acp" is visible — '
+                'billion-context: SettingsForms is present but no profile entry named "compaction-acp" is visible — '
                 + 'the six knobs keep their composition values; /acp-prune config needs a composition row with that id '
                 + '(the bundle install provides it)',
               )
@@ -615,7 +615,7 @@ export class AcpCompactionEngine extends CompactionEngine {
         // available and fail every write with opaque errors. Values keep
         // flowing from the composition row through the untouched thunk.
         this.ctx.logger.warn(
-          'billion-context-dsh: host settings service speaks neither installSection (dsh-settings <= 0.1.6) '
+          'billion-context: host settings service speaks neither installSection (dsh-settings <= 0.1.6) '
           + 'nor SettingsForms describe/update/replace (>= 0.1.7) — the compaction-acp settings section is '
           + 'unavailable; the six knobs keep their composition values',
         )
@@ -728,7 +728,7 @@ export class AcpCompactionEngine extends CompactionEngine {
       // before the agent loop resumes, so the pair is hidden before the next
       // request is built.
       deferCompressPairHide(session, callId, event.seq, (error) => {
-        ctx.logger.warn(`billion-context-dsh: hide compress call/result pair failed: ${String(error)}`)
+        ctx.logger.warn(`billion-context: hide compress call/result pair failed: ${String(error)}`)
       })
     })
     ctx.on('agent/pre-step', async (payload, next) => {
@@ -764,7 +764,7 @@ export class AcpCompactionEngine extends CompactionEngine {
           // is spent: log WHY the model stops receiving nudges instead of
           // letting the silence look like a bug (issue #108 review).
           ctx.logger.warn(
-            `billion-context-dsh: emergency nudge suppressed — per-turn budget of ${EMERGENCY_NUDGE_MAX_PER_TURN} spent (session ${payload.agent.session.id}); pressure is still above the emergency threshold`,
+            `billion-context: emergency nudge suppressed — per-turn budget of ${EMERGENCY_NUDGE_MAX_PER_TURN} spent (session ${payload.agent.session.id}); pressure is still above the emergency threshold`,
           )
         },
       )
@@ -798,7 +798,7 @@ export class AcpCompactionEngine extends CompactionEngine {
       const max = this.config.maxOverflowRetries ?? 1
       if (retries >= max) {
         this.ctx.logger.warn(
-          `billion-context-dsh: context-overflow recovery budget spent (${max} retries) for session ${agent.session.id}; preserving the original request error`,
+          `billion-context: context-overflow recovery budget spent (${max} retries) for session ${agent.session.id}; preserving the original request error`,
         )
         return next()
       }
@@ -813,13 +813,13 @@ export class AcpCompactionEngine extends CompactionEngine {
           // surface shrank, so retrying from the replacement surface is the
           // best move even though the bookkeeping failed.
           this.ctx.logger.warn(
-            `billion-context-dsh: context-overflow compaction failed after durable surface progress: ${message}; retrying from the replacement surface`,
+            `billion-context: context-overflow compaction failed after durable surface progress: ${message}; retrying from the replacement surface`,
           )
           this.overflowRetries.set(agent, retries + 1)
           return { kind: 'retry' }
         }
         this.ctx.logger.warn(
-          `billion-context-dsh: context-overflow compaction failed: ${message}; ${signal.aborted ? 'cancellation prevents retry' : 'preserving the original request error'}`,
+          `billion-context: context-overflow compaction failed: ${message}; ${signal.aborted ? 'cancellation prevents retry' : 'preserving the original request error'}`,
         )
         return next()
       }
@@ -842,7 +842,7 @@ export class AcpCompactionEngine extends CompactionEngine {
     const systemPrompt = ctx.get('systemPrompt')
     if (systemPrompt !== undefined) {
       systemPrompt.section({
-        name: 'billion-context-dsh',
+        name: 'billion-context',
         order: ACP_SYSTEM_PROMPT_ORDER,
         text: renderSystemPrompt(this.prompts),
       })
@@ -854,7 +854,7 @@ export class AcpCompactionEngine extends CompactionEngine {
         if (registry === undefined) return
         done = true
         registry.section({
-          name: 'billion-context-dsh',
+          name: 'billion-context',
           order: ACP_SYSTEM_PROMPT_ORDER,
           text: renderSystemPrompt(this.prompts),
         })
@@ -927,7 +927,7 @@ export class AcpCompactionEngine extends CompactionEngine {
         // came from (a gateway that disclosed no window read as ~55% of 128K
         // when the real window was 1M).
         this.ctx.logger.warn(
-          `billion-context-dsh: context-window auto-detection failed for ${provider}/${model} — using the ${DEFAULT_CONTEXT_WINDOW} fallback (change modelContextLimit or autoModelContextLimit via /acp-prune config — or restart — to re-probe)`,
+          `billion-context: context-window auto-detection failed for ${provider}/${model} — using the ${DEFAULT_CONTEXT_WINDOW} fallback (change modelContextLimit or autoModelContextLimit via /acp-prune config — or restart — to re-probe)`,
         )
         window = { limit: DEFAULT_CONTEXT_WINDOW, source: 'default', provider, model, probeFailed: true }
         cap = null // the probe failed or disclosed nothing — no cap either
@@ -952,7 +952,7 @@ export class AcpCompactionEngine extends CompactionEngine {
   private onSettingsChanged(prev: AcpSettings, next: AcpSettings): void {
     const effect = describeSettingsChange(prev, next)
     for (const warning of effect.warnings) {
-      this.ctx.logger.warn(`billion-context-dsh: ${warning}`)
+      this.ctx.logger.warn(`billion-context: ${warning}`)
     }
     if (effect.clearWindowCache) this.windowCache.clear()
     if (effect.clearNudgeDedup) this.lastNudgeTurn.clear()
@@ -1112,7 +1112,7 @@ export class AcpCompactionEngine extends CompactionEngine {
     signal?.throwIfAborted()
     throw new ManualCompactionError(
       'summary',
-      'billion-context-dsh is model-driven: use the compress tool instead of automatic summarization',
+      'billion-context is model-driven: use the compress tool instead of automatic summarization',
     )
   }
 }

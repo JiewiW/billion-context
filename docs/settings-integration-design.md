@@ -246,7 +246,7 @@ const applySettingsChange = (): void => {
     this.onSettingsChanged(lastApplied, next)   // §4.4
   } catch (error) {
     // watcher 链只 contain 异步异常；同步抛出会冒泡进 settings 服务的 commit 循环——必须自己兜住
-    this.ctx.logger.warn('billion-context-dsh: settings change handler failed — previous behavior kept', error)
+    this.ctx.logger.warn('billion-context: settings change handler failed — previous behavior kept', error)
   }
   lastApplied = next
 }
@@ -303,12 +303,12 @@ private onSettingsChanged(prev: AcpSettings, next: AcpSettings): void {
   }
   // 顺序异常只警告不拒绝（理由见 §4.5）
   if ((next.nudgeMinContextLimitPct ?? 0) >= next.nudgeMaxContextLimitPct) {
-    this.ctx.logger.warn('billion-context-dsh: nudgeMinContextLimitPct >= nudgeMaxContextLimitPct — growth-based nudges are effectively disabled (over-limit guarantee still applies)')
+    this.ctx.logger.warn('billion-context: nudgeMinContextLimitPct >= nudgeMaxContextLimitPct — growth-based nudges are effectively disabled (over-limit guarantee still applies)')
   }
   if (next.nudgeMaxContextLimitPct > next.nudgeEmergencyThresholdPct) {
-    this.ctx.logger.warn('billion-context-dsh: nudgeMaxContextLimitPct > nudgeEmergencyThresholdPct — emergency tier will never fire')
+    this.ctx.logger.warn('billion-context: nudgeMaxContextLimitPct > nudgeEmergencyThresholdPct — emergency tier will never fire')
   }
-  this.ctx.logger.info(`billion-context-dsh: settings updated (compaction-acp)`)
+  this.ctx.logger.info(`billion-context: settings updated (compaction-acp)`)
 }
 ```
 

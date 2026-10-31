@@ -34,7 +34,7 @@
  *   - `DSH_ACP_INJECT_TRACE=1` 打开（`0`/`off`/`false` 关闭，未设置即关闭）；
  *   - `DSH_ACP_INJECT_TRACE_FILE=<path>` 覆盖输出路径（测试用临时目录）。
  *
- * @module billion-context-dsh/inject-trace
+ * @module billion-context/inject-trace
  */
 
 import { appendFileSync, mkdirSync } from 'node:fs'

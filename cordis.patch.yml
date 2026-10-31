@@ -1,6 +1,6 @@
-# dsh bundle patch: makes billion-context-dsh ACTIVE right after a one-command
+# dsh bundle patch: makes billion-context ACTIVE right after a one-command
 # install — the plugin store and `dsh plugin --profile web add
-# billion-context-dsh` both run the same command, and this file (declared in
+# billion-context` both run the same command, and this file (declared in
 # package.json as `dsh.bundle.patch`) becomes a layer of the profile's
 # composition automatically. No manual configuration is needed.
 #
@@ -29,4 +29,4 @@
 
 - insert:
     - id: compaction-acp
-      name: 'billion-context-dsh'
+      name: 'billion-context'

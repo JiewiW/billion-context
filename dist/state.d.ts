@@ -14,7 +14,7 @@
  * ref it cannot find — so on first access for a session that already has
  * durable blocks (e.g. after a server restart), the kernel blocks are
  * REHYDRATED from the ledger before use. Live updates continue through `set`.
- * @module billion-context-dsh/state
+ * @module billion-context/state
  */
 import type { Session } from '@deepseek-ai/dsh-session';
 import { type CompressionState } from 'acp-kernel';

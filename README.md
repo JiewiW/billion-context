@@ -1,4 +1,4 @@
-# billion-context-dsh
+# billion-context
 
 [中文](./README.md) | [English](./README.en.md)
 
@@ -27,23 +27,23 @@
 ---
 
 <p align="center">
-<a href="https://www.npmjs.com/package/billion-context-dsh"><img src="https://img.shields.io/npm/v/billion-context-dsh.svg?style=flat-square" alt="npm"></a>
-<a href="https://github.com/Tyan66666/billion-context-dsh/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/billion-context-dsh.svg?style=flat-square" alt="license"></a>
-<a href="https://github.com/Tyan66666/billion-context-dsh"><img src="https://img.shields.io/badge/GitHub-Tyan66666%2Fbillion--context--dsh-181717?style=flat-square&logo=github" alt="GitHub"></a>
+<a href="https://www.npmjs.com/package/billion-context"><img src="https://img.shields.io/npm/v/billion-context.svg?style=flat-square" alt="npm"></a>
+<a href="https://github.com/Tyan66666/billion-context/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/billion-context.svg?style=flat-square" alt="license"></a>
+<a href="https://github.com/Tyan66666/billion-context"><img src="https://img.shields.io/badge/GitHub-Tyan66666%2Fbillion--context--dsh-181717?style=flat-square&logo=github" alt="GitHub"></a>
 <a href="https://github.com/topics/dsh-plugin"><img src="https://img.shields.io/badge/topic-dsh--plugin-blue?style=flat-square" alt="dsh-plugin"></a>
 </p>
 
 <p align="center">
-<code>npm install billion-context-dsh</code>
+<code>npm install billion-context</code>
 </p>
 
 ---
 
 ## 为什么？
 
-当对话变长，模型会耗尽上下文。多数工具直接硬截断——悄悄丢弃早期消息。**billion-context-dsh** 给模型一个 `compress` 工具：由 LLM 决定**何时**、**压缩什么**，写成高保真摘要，保留关键细节（文件路径、决策、错误信息）的同时回收上下文空间。
+当对话变长，模型会耗尽上下文。多数工具直接硬截断——悄悄丢弃早期消息。**billion-context** 给模型一个 `compress` 工具：由 LLM 决定**何时**、**压缩什么**，写成高保真摘要，保留关键细节（文件路径、决策、错误信息）的同时回收上下文空间。
 
-与 DSH 内置的自动压缩（用自动生成的摘要替换一段范围）不同，billion-context-dsh：
+与 DSH 内置的自动压缩（用自动生成的摘要替换一段范围）不同，billion-context：
 
 - **模型驱动** —— 摘要由模型自己书写，没有第二次 LLM 摘要调用
 - **只建议、不强令** —— 自动策略只 *nudge*（提醒），是否压缩、何时压缩由模型决定（唯一的例外：provider 确认的上下文超窗会让引擎自己抢救一次——见配置表的 `maxOverflowRetries`）
@@ -51,7 +51,7 @@
 - **长任务稳得住** —— 每一步都接着前面的成果走，关键结论持续可用、不断叠加，超长任务更容易跑完
 - **上下文始终精简** —— 每次请求都只用少量、精炼的上下文，只保留关键信息；不做大段统一压缩，细节不随之衰失，token 消耗自然更低
 
-这是 [billion-context-pi](https://github.com/ranxianglei/billion-context-pi)（Pi 编码代理适配器）在 DeepSeek Harness 上的移植：压缩内核（[acp-kernel](https://github.com/ranxianglei/acp-kernel)）原样复用，适配层针对 DSH 的 durable-surface 模型重写——经过验证的映射关系见 [docs](https://github.com/Tyan66666/billion-context-dsh/tree/main/docs)。
+这是 [billion-context-pi](https://github.com/ranxianglei/billion-context-pi)（Pi 编码代理适配器）在 DeepSeek Harness 上的移植：压缩内核（[acp-kernel](https://github.com/ranxianglei/acp-kernel)）原样复用，适配层针对 DSH 的 durable-surface 模型重写——经过验证的映射关系见 [docs](https://github.com/Tyan66666/billion-context/tree/main/docs)。
 
 ## 安装
 
@@ -65,7 +65,7 @@
 在 DSH 的插件商店里点安装，或命令行执行：
 
 ```bash
-dsh plugin --profile web add billion-context-dsh
+dsh plugin --profile web add billion-context
 ```
 
 命令内部会装包并把本包的 bundle 补丁（[cordis.patch.yml](cordis.patch.yml)）自动挂进该 profile 的层栈。补丁做了两件事：
@@ -94,7 +94,7 @@ dsh plugin --profile web add billion-context-dsh
 **方式二：纯 `npm install`（只装包，需要手写组合行）。**
 
 ```bash
-npm install billion-context-dsh
+npm install billion-context
 ```
 
 这只把包装进你的项目/全局，**不会**触碰任何 profile——请按下方「两种生效范围与自定义」手写组合行，引擎才会挂载。
@@ -102,7 +102,7 @@ npm install billion-context-dsh
 **git 源安装（`github:` 规格，插件商店展示的形态）。** 预构建产物 `dist/` 已提交到仓库，从 git 源安装同样开箱即用——**无需任何构建步骤**，pnpm 11 默认拦截构建脚本（`allowBuilds`）的机制对这个包不构成障碍：
 
 ```bash
-dsh plugin --profile web add github:Tyan66666/billion-context-dsh#v0.2.27
+dsh plugin --profile web add github:Tyan66666/billion-context#v0.2.27
 ```
 
 建议带 `#<tag>` 安装，拿到与对应 npm 版本完全一致的产物；不带 ref 则装默认分支的最新构建。只有 clone 仓库自行从源码构建（`npm run build`）才需要放行构建。背景与方案取舍见 [docs/git-source-install-design.md](docs/git-source-install-design.md)（issue #92）。
@@ -115,7 +115,7 @@ dsh plugin --profile web add github:Tyan66666/billion-context-dsh#v0.2.27
 
 ```yaml
 - id: compaction-acp
-  name: 'billion-context-dsh'
+  name: 'billion-context'
   config:
     modelContextLimit: 128000   # 可选；省略时自动探测模型真实窗口（回退 128000）
 ```
@@ -132,7 +132,7 @@ dsh plugin --profile web add github:Tyan66666/billion-context-dsh#v0.2.27
 
 - insert:
     - id: compaction-acp
-      name: 'billion-context-dsh'
+      name: 'billion-context'
       config:
         modelContextLimit: 128000   # 可选；省略时自动探测模型真实窗口（回退 128000）
 ```
@@ -178,7 +178,7 @@ compaction-acp:
 
 # 再插入本引擎
 - id: compaction-acp
-  name: 'billion-context-dsh'
+  name: 'billion-context'
   config:
     modelContextLimit: 128000   # 可选；省略时自动探测模型真实窗口（回退 128000）
 ```
@@ -223,7 +223,7 @@ DSH 的每个模型请求都派生自其 append-only 会话日志（*surface*）
 
 - **摘要标源（模型自写摘要的框架行）**：每条压缩摘要在写入时前置 `[Model-written summary — not user words; re-verify any obligations before relying on them]`——同时写进持久化摘要事件与其 checkpoint 节点（同一份文本），投影路径对旧块幂等补框。目的：阻止模型把摘要里的义务句当成用户原话直接执行。
 - **瘦身 nudge**：压缩哲学/规则段不再随每次 nudge 重复（它们已在系统提示里）；nudge 正文只保留触发框架 + 上下文分解 + 范围表。模板路径（`config.prompts.nudge`）同样摘除这些段落。设计背景：[docs/injection-governance-design.md](docs/injection-governance-design.md)。
-- **未移植的上游能力 — `acp_rule`（永久规则层）**：上游 billion-context-pi 还有第五个模型工具 `acp_rule`（opt-in：`"rules": true`），用于在对话中途登记**能穿越压缩**的原则级提醒。本移植版尚未包含它。**内核侧阻塞已解除**：本仓 pin 已升到 acp-kernel **0.0.101**，其入口已导出完整规则 API（`RULE_TOOL_NAME` / `addRule` / `removeRule` / `clearRules` / `formatRulesForPrompt` / `formatRulesList` / `resolveRuleLimits`，来自 `dist/rules.js`），以及 `RuleRecord` / `RulesConfig` 类型与 state 里的 `rules` / `nextRuleId` 字段——剩下的是移植工作本身（第五工具 + `config.rules` 接线），不再是「没有可接的内核接口」。移植计划见 [issue #189](https://github.com/Tyan66666/billion-context-dsh/issues/189)（文档兜底 → pin bump → 用内核 API 接第五工具）。过渡期变通：长期约定写入 AGENTS.md（注入行受屏障/pin 机制保护，天然穿越压缩），或经 `config.prompts.systemPrompt` 静态注入——两者都不支持会话中途登记/列举/撤销规则。
+- **未移植的上游能力 — `acp_rule`（永久规则层）**：上游 billion-context-pi 还有第五个模型工具 `acp_rule`（opt-in：`"rules": true`），用于在对话中途登记**能穿越压缩**的原则级提醒。本移植版尚未包含它。**内核侧阻塞已解除**：本仓 pin 已升到 acp-kernel **0.0.101**，其入口已导出完整规则 API（`RULE_TOOL_NAME` / `addRule` / `removeRule` / `clearRules` / `formatRulesForPrompt` / `formatRulesList` / `resolveRuleLimits`，来自 `dist/rules.js`），以及 `RuleRecord` / `RulesConfig` 类型与 state 里的 `rules` / `nextRuleId` 字段——剩下的是移植工作本身（第五工具 + `config.rules` 接线），不再是「没有可接的内核接口」。移植计划见 [issue #189](https://github.com/Tyan66666/billion-context/issues/189)（文档兜底 → pin bump → 用内核 API 接第五工具）。过渡期变通：长期约定写入 AGENTS.md（注入行受屏障/pin 机制保护，天然穿越压缩），或经 `config.prompts.systemPrompt` 静态注入——两者都不支持会话中途登记/列举/撤销规则。
 
 ## 上游项目与致谢
 
@@ -299,7 +299,7 @@ ref capacity exhausted: cannot allocate beyond m99999
 - **压缩救不回**：报错在任何压缩决策之前抛出，`compress` 工具自己也走同一条路径；
 - **重启 dsh 也救不回**：内核状态是纯内存态、不落盘，重启后第一轮就要为整条日志从头重新编号——日志已超过约 10 万条消息级事件时当场再次撞限。
 
-也就是说，在 0.0.101 之前的内核上，对本插件而言**「日志超过约 10 万条消息级事件 = 该会话在 ACP 下永久不可用」是硬墙**。正解是内核把引用位宽从 5 位放宽到 7 位：已在 [acp-kernel#483](https://github.com/ranxianglei/acp-kernel/issues/483) 提请并在 **0.0.101** 发布（追踪见 [docs/upstream-tracker.md](docs/upstream-tracker.md)，issue [#187](https://github.com/Tyan66666/billion-context-dsh/issues/187) 已 resolved）。
+也就是说，在 0.0.101 之前的内核上，对本插件而言**「日志超过约 10 万条消息级事件 = 该会话在 ACP 下永久不可用」是硬墙**。正解是内核把引用位宽从 5 位放宽到 7 位：已在 [acp-kernel#483](https://github.com/ranxianglei/acp-kernel/issues/483) 提请并在 **0.0.101** 发布（追踪见 [docs/upstream-tracker.md](docs/upstream-tracker.md)，issue [#187](https://github.com/Tyan66666/billion-context/issues/187) 已 resolved）。
 
 **处置**：
 

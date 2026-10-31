@@ -8,7 +8,7 @@
  * summary under `compactCheckpointSource`, and release the lock with
  * `compaction/end`. The original events stay in the append-only log, so
  * decompress/search/status can rebuild everything from the log.
- * @module billion-context-dsh/region
+ * @module billion-context/region
  */
 import type { Session, SessionEvent, SessionEventMap } from '@deepseek-ai/dsh-session';
 import { CompactionId } from '@deepseek-ai/dsh-compaction';

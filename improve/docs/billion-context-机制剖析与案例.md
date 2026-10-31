@@ -15,13 +15,13 @@
 |---|---|---|---|
 | `ranxianglei/billion-context` | 2596 | **官方统一版**，同时支持 pi / OpenCode / Claude Code 等二十余宿主 | 活跃，作者推荐用它 |
 | `ranxianglei/billion-context-pi` | 261 | 原始 Pi 适配版 | 历史版本 |
-| `Tyan66666/billion-context-dsh` | 162 | DeepSeek Harness（DSH）适配版 —— **你本地装的就是这条** | **已停止维护**，README 顶部明确让你改用官方版 |
+| `Tyan66666/billion-context` | 162 | DeepSeek Harness（DSH）适配版 —— **你本地装的就是这条** | **已停止维护**，README 顶部明确让你改用官方版 |
 | `ranxianglei/acp-kernel` | 41 | **压缩内核本身**，零运行时依赖，ACP = Active Context Pruning | 单一事实源 |
 
 **关键结构关系是理解全部机制的前提**：
 
 ```
-billion-context-dsh（适配器，薄）
+billion-context（适配器，薄）
    └─ 复用 acp-kernel（内核，纯函数，零 I/O）
         └─ 宿主注入 countTokens + 消息列表；流失的数据一律由适配器负责
 
@@ -39,7 +39,7 @@ billion-context（官方统一版）= 同一套 acp-kernel + 更宽的宿主适�
 但意外收获：**找到了一条仍在插件挂载状态下跑出来的会话**（详见第 3 节），所以本文的案例不是推演，是**现场证据**。已克隆源码到本机供你改设计时对照：
 
 ```
-D:\dsh\_bc-src\bcdsh\   ← Tyan66666/billion-context-dsh（含 src/*.ts）
+D:\dsh\_bc-src\bcdsh\   ← Tyan66666/billion-context（含 src/*.ts）
 D:\dsh\_bc-src\bcpi\    ← ranxianglei/billion-context-pi
 D:\dsh\_bc-src\acpk\    ← ranxianglei/acp-kernel（核心，20.5k 行）
 ```
@@ -265,7 +265,7 @@ reconcile-live-ids → assign-refs → sync-blocks → prune → ccr-store
 按你的要求，我用 `~/.dsh/skills/dsh-session-log-extract` 翻找 10-22 及以前的会话。先说明两点如实情况：
 
 1. **10-22 那天第一个候选 `session-7c423028` 是空会话**（解压只有 392 字节、仅含 header + end-seed），弃用；
-2. 但第二个候选 **`session-063661eb` 不仅内容丰富，而且是在 billion-context-dsh 挂载状态下跑出来的** —— `request/header`（seq 14）里注册的完整工具表中有：
+2. 但第二个候选 **`session-063661eb` 不仅内容丰富，而且是在 billion-context 挂载状态下跑出来的** —— `request/header`（seq 14）里注册的完整工具表中有：
    `acp_cache` / **`acp_status`** / **`compress`** / **`decompress`** / **`search_context`**。
 
 也就是说：**我们拿到的不是"如果压会怎样"的推演，而是插件真跑、模型真写了摘要、内核真报了省了多少 token 的现场记录。**
@@ -409,7 +409,7 @@ seq 1232 还能检索到 **5 个区块**（b7/b4/b2/b5 等，带区间和结论�
 
 | # | 风险 | 证据 / 机理 | 影响 |
 |---|---|---|---|
-| **R1** | **两套压缩引擎并存导致 ref 空间不一致** | DSH 自带 `compaction-basic` 与 ACP **同时**存在于同一 realm；本会话日志里 ACP 与 7 次 `compaction/*` 交错；失败一的诊断明文写到 "native-compaction rebase resets them the same way"。`billion-context-dsh` 的安装方式其实就是靠 `cordis.patch.yml` **主动禁用**宿主 `compaction-basic` 来避这个冲突（README 称此步为幂等兜底） | **致命**：ACP 的 ref 是它对世界的唯一坐标系，宿主一动坐标系就全废 |
+| **R1** | **两套压缩引擎并存导致 ref 空间不一致** | DSH 自带 `compaction-basic` 与 ACP **同时**存在于同一 realm；本会话日志里 ACP 与 7 次 `compaction/*` 交错；失败一的诊断明文写到 "native-compaction rebase resets them the same way"。`billion-context` 的安装方式其实就是靠 `cordis.patch.yml` **主动禁用**宿主 `compaction-basic` 来避这个冲突（README 称此步为幂等兜底） | **致命**：ACP 的 ref 是它对世界的唯一坐标系，宿主一动坐标系就全废 |
 | **R2** | **state 可获得性脆弱**（②号失败） | 同 turn 相邻 step，5 区块 → 0 区块 | **致命**：已压缩内容集体失踪，且无报错、无提示 |
 | **R3** | **解压"回注"会瞬间打满上下文** | seq 1155 单次 `decompress(b7)` 还原 157,979 字符到临时文件，要求模型 `read` | 省下的全部赔回去还倒挂；这是 footgun 而非安全网 |
 | **R4** | **摘要质量无下限保障** | 内核从不调模型，摘要对了错了它都不知道。代码注释 `#442` 记录了真实事故：一次多块合并（b22 ⊇ b13）**丢掉了 b13 里记录的一个仍然开放的用户转向**；`#309` 记录了把**编造的用户原话**存成活的 "CURRENT TASK" 导致循环复发 | 高：错误一旦落进摘要就是永久污染 |

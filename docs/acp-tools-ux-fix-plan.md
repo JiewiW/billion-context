@@ -54,7 +54,7 @@
 ```
 
 2. mN 匹配器健壮性（MINOR-3 采纳）：对齐 kernel `REF_PATTERN = /^m0*(\d{1,5})$/i`（`refs.ts:6`，容忍 `m306`、大小写不敏感），容忍尾部 `#callId`（与 parseSeq `#` 处理对称）；防御 byRef 反查结果非 `数字`/`数字#...` 形态 → 明确报错而非 `Number('abc')` NaN 静默。
-3. 未知 mN 报错文案：`billion-context-dsh: mN "m00306" not found on the current surface — re-run acp_status for fresh refs (the surface may have moved)`。
+3. 未知 mN 报错文案：`billion-context: mN "m00306" not found on the current surface — re-run acp_status for fresh refs (the surface may have moved)`。
 4. `handleStatus` Note 行（`:641-643`）+ 代码注释（`:637-640`）同步更新：
 
 ```diff

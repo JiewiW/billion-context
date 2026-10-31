@@ -1,6 +1,6 @@
-# IMPROVED: quote-fidelity edition (billion-context-dsh) + 标定证据链
+# IMPROVED: quote-fidelity edition (billion-context) + 标定证据链
 
-> 本分支是 billion-context-dsh（DSH 宿主，基于上游 3b89313）的**改进版完整快照**，并随附整个改进施工的文档与标定证据；与 `master`（上游统一版同步分支）相互独立。
+> 本分支是 billion-context（DSH 宿主，基于上游 3b89313）的**改进版完整快照**，并随附整个改进施工的文档与标定证据；与 `master`（上游统一版同步分支）相互独立。
 
 ## 本分支包含的改进
 

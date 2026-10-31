@@ -7,7 +7,7 @@
  * call). decompress recovers shadowed content read-only from the log (DSH
  * keeps the originals — V5). search_context scores blocks rebuilt from the
  * log. acp_status reports the block ledger and pressure.
- * @module billion-context-dsh/tools
+ * @module billion-context/tools
  */
 import { type ToolDefinition } from '@deepseek-ai/dsh-tools';
 import { type CompressionCore, type SearchDoc } from 'acp-kernel';

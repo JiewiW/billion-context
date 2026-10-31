@@ -8,7 +8,7 @@
  * summary under `compactCheckpointSource`, and release the lock with
  * `compaction/end`. The original events stay in the append-only log, so
  * decompress/search/status can rebuild everything from the log.
- * @module billion-context-dsh/region
+ * @module billion-context/region
  */
 
 import { randomUUID } from 'node:crypto'
@@ -108,7 +108,7 @@ export function assertNoActiveCompaction(events: readonly SessionEvent[]): void 
     else if (event.type === 'compaction/end') active = false
   }
   if (active) {
-    console.warn('billion-context-dsh: clearing stale compaction flag — found a compaction/start with no matching compaction/end')
+    console.warn('billion-context: clearing stale compaction flag — found a compaction/start with no matching compaction/end')
   }
 }
 
@@ -175,7 +175,7 @@ export class AlreadyCompressedRangeError extends Error {
     readonly coveringBlockIds: readonly string[],
   ) {
     super(
-      `billion-context-dsh: seq ${start}..${end} already compressed — `
+      `billion-context: seq ${start}..${end} already compressed — `
       + 'no live content remains in that span',
     )
     this.name = 'AlreadyCompressedRangeError'
@@ -265,7 +265,7 @@ export function resolveSurfaceRange(
 ): ResolvedSurfaceRange {
   const nodes = session.surface.nodes
   if (start > end) {
-    throw new Error(`billion-context-dsh: reversed range ${start}..${end}`)
+    throw new Error(`billion-context: reversed range ${start}..${end}`)
   }
   let requestedStartIdx = nodes.indexOf(start as SurfaceSeq)
   let requestedEndIdx = nodes.indexOf(end as SurfaceSeq)
@@ -274,7 +274,7 @@ export function resolveSurfaceRange(
     const stale = recoverStaleRange(session, start, end)
     if (stale.kind === 'unresolvable') {
       throw new Error(
-        `billion-context-dsh: seq ${start}..${end} not in the current surface — `
+        `billion-context: seq ${start}..${end} not in the current surface — `
         + `edge seq ${stale.failedEdge} is not in this session's log. `
         + 'Surface seqs are sparse message nodes (only user/message, assistant/message, '
         + 'tool/result events); consult acp_status for the current surface range',
@@ -292,18 +292,18 @@ export function resolveSurfaceRange(
       // Unreachable in practice (recovery returns live nodes), but never let
       // a negative index reach the balancing passes.
       throw new Error(
-        `billion-context-dsh: seq ${start}..${end} not in the current surface — `
+        `billion-context: seq ${start}..${end} not in the current surface — `
         + 'consult acp_status for the current surface range',
       )
     }
   }
   if (requestedStartIdx > requestedEndIdx) {
-    throw new Error(`billion-context-dsh: reversed range ${start}..${end}`)
+    throw new Error(`billion-context: reversed range ${start}..${end}`)
   }
   // Belt-and-braces: the surface can be locally out of order after surface
   // replacements, so index order alone does not guarantee value order.
   if (start > end) {
-    throw new Error(`billion-context-dsh: reversed range ${start}..${end}`)
+    throw new Error(`billion-context: reversed range ${start}..${end}`)
   }
   // A boundary must be BOTH tool-pairing-balanced AND anchorable: the cut must
   // map onto kernel refs that name the shadowed span (bare-`${seq}` id, a
@@ -345,7 +345,7 @@ export function resolveSurfaceRange(
   // balanced by shrinking alone, give up with guidance instead.
   if (recovered) {
     throw new Error(
-      `billion-context-dsh: no tool-pairing-balanced live remainder around seq ${start}..${end} — `
+      `billion-context: no tool-pairing-balanced live remainder around seq ${start}..${end} — `
       + 'narrow the range or consult acp_status for the current surface',
     )
   }
@@ -367,7 +367,7 @@ export function resolveSurfaceRange(
     return { start: nodes[startIdx]!, end: nodes[endIdx]! }
   }
   throw new Error(
-    `billion-context-dsh: no tool-pairing-balanced range around seq ${start}..${end} — `
+    `billion-context: no tool-pairing-balanced range around seq ${start}..${end} — `
     + 'narrow the range or consult acp_status for the current surface',
   )
 }
@@ -541,12 +541,12 @@ export function runCompactionTransaction(
   // (poisoning every later compress call) plus an orphan summary in the ledger.
   // Validating the edges up front keeps a bad range a clean, zero-write no-op.
   if (input.start > input.end) {
-    throw new Error(`billion-context-dsh: reversed range ${input.start}..${input.end}`)
+    throw new Error(`billion-context: reversed range ${input.start}..${input.end}`)
   }
   if (eventAtOf(session, input.start) === undefined || eventAtOf(session, input.end) === undefined) {
     const failedEdge = eventAtOf(session, input.start) === undefined ? input.start : input.end
     throw new Error(
-      `billion-context-dsh: seq ${input.start}..${input.end} not in the current surface — `
+      `billion-context: seq ${input.start}..${input.end} not in the current surface — `
       + `edge seq ${failedEdge} is not in this session's log. `
       + 'Surface seqs are sparse message nodes (only user/message, assistant/message, '
       + 'tool/result events); consult acp_status for the current surface range',
@@ -561,7 +561,7 @@ export function runCompactionTransaction(
   // the whole session log (issue #201).
   if (!isExactSurfaceSpan(session, input.start, input.end, input.shadowedSeqs)) {
     throw new Error(
-      `billion-context-dsh: seq ${input.start}..${input.end} is not an exact current surface span — `
+      `billion-context: seq ${input.start}..${input.end} is not an exact current surface span — `
       + 'its edges are no longer on the surface or the declared shadowedSeqs do not match the live slice. '
       + 'Nothing was written; consult acp_status for the current surface range',
     )
@@ -641,7 +641,7 @@ export function runCompactionTransaction(
     } catch (compensateError) {
       // The durable log may now hold a dangling compaction/start; the next
       // assertNoActiveCompaction call heals it. Never mask the original error.
-      console.warn('billion-context-dsh: failed to write a compensating compaction/end', compensateError)
+      console.warn('billion-context: failed to write a compensating compaction/end', compensateError)
     }
     throw error
   }
@@ -776,7 +776,7 @@ function isToolEvent(event: SessionEvent): boolean {
 // `isCheckpointNode` now lives in src/messages.ts (imported above) so the range
 // scanner, the protected-tail scan and `classifySurfaceEvent` cannot drift
 // apart. A local `isPruneTombstone` was dropped for the same reason: the prune
-// tombstone is written with `source: { kind: 'plugin:billion-context-dsh' }`
+// tombstone is written with `source: { kind: 'plugin:billion-context' }`
 // (see `hideSurfaceSeqs`), which `classifySurfaceEvent` files under `metadata`,
 // so `isRealUserTurn` already refuses it tail protection.
 
@@ -833,7 +833,7 @@ export function hideSurfaceSeqs(
   // transaction. Validate BEFORE the first append (issue #201).
   if (!isExactSurfaceSpan(session, start, end, seqs)) {
     throw new Error(
-      `billion-context-dsh: cannot prune seqs ${seqs.join(', ')} — they do not name an exact current surface span. `
+      `billion-context: cannot prune seqs ${seqs.join(', ')} — they do not name an exact current surface span. `
       + 'Nothing was written; consult acp_status for the current surface range',
     )
   }
@@ -856,7 +856,7 @@ export function hideSurfaceSeqs(
     // V4 producer kind (issue #163): DSH ≥0.1.7's V4 admission rejects the
     // legacy wrapper `{ kind: 'plugin', plugin: … }`; `plugin:<name>` is what
     // the host's own V3→V4 migration emits and is accepted by 0.1.5 too.
-    source: { kind: 'plugin:billion-context-dsh' },
+    source: { kind: 'plugin:billion-context' },
   }), {
     surfaceOp: { op: 'replace', startSeq: start as SurfaceSeq, endSeq: end as SurfaceSeq },
     sourceEventSeqs: [...seqs] as SurfaceSeq[],

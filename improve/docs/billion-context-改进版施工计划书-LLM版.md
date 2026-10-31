@@ -272,7 +272,7 @@ if (!Number.isInteger(keep) || keep < 0) {
 | 方案 A | `userVerbatimKeep = 0`、全部 user 原文保留 | TASK-2 设计口径 |
 | 方案 B | 逃生阀、`userVerbatimKeep = N (N>0)` | TASK-2 设计口径 |
 | acpk | acp-kernel（`_bc-src/acpk`） | `acpk/package.json` |
-| bcdsh | billion-context-dsh、DSH 适配器（`_bc-src/bcdsh`） | `bcdsh/package.json` |
+| bcdsh | billion-context、DSH 适配器（`_bc-src/bcdsh`） | `bcdsh/package.json` |
 | fp120 | 前 120 字符指纹 | TASK-3 字段口径 |
 
 **术语定义**：`protectedFn` = `assignRefsNode` 的消息保护谓词（`compress.ts:849`）；`BLOCKED_REF` = `refs.ts:76-79` 的阻塞引用通路；CCR = content-cached retrieval（`ccr.ts`）；T1/T2/T3 = 三层蒸馏分级，定义见 `billion-context-机制剖析与案例.md` §1.5（约 444 行，先检索定位再局部读取）。

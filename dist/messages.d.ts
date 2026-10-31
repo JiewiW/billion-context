@@ -18,7 +18,7 @@ declare module '@deepseek-ai/dsh-llm' {
             kind: 'plugin:acp-nudge';
         };
         acpPrune: {
-            kind: 'plugin:billion-context-dsh';
+            kind: 'plugin:billion-context';
         };
         compactCheckpoint: {
             kind: 'compact-checkpoint';

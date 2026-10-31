@@ -1,6 +1,6 @@
 # 安装与验证指南
 
-把 billion-context-dsh 装进真实 DSH 部署并验证它工作。以下步骤在本机 profile（`~/.dsh/profiles/web`）上实测过解析机制（组合行包名从 profile 目录向上解析 node_modules）。
+把 billion-context 装进真实 DSH 部署并验证它工作。以下步骤在本机 profile（`~/.dsh/profiles/web`）上实测过解析机制（组合行包名从 profile 目录向上解析 node_modules）。
 
 ## 1. 安装包
 
@@ -8,18 +8,18 @@
 
 ```bash
 mkdir -p ~/.dsh/profiles/web/node_modules
-ln -s /Users/yintianan/GitHub/billion-context-dsh ~/.dsh/profiles/web/node_modules/billion-context-dsh
+ln -s /Users/yintianan/GitHub/billion-context ~/.dsh/profiles/web/node_modules/billion-context
 ```
 
-依赖说明：`dist/index.js` 内联了 acp-kernel，运行时把五个 seam 包 `@deepseek-ai/dsh-compaction`、`@deepseek-ai/dsh-session`、`@deepseek-ai/dsh-llm`、`@deepseek-ai/dsh-tools`、`@deepseek-ai/dsh-settings` 作为**外部依赖**（由 `devDependencies` 提供并同时声明为 `peerDependencies`，`billion-context-dsh/node_modules` 已在解析链上）；`@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery` 同为 peer。这五个 seam 包共享同一个 **peer 范围** `>=0.1.5-alpha.1 <0.2.1-0`——覆盖所有已验证的版本线：`0.1.5` 下限加已验证的 `0.1.6` / `0.1.7` / `0.2.0` 线（各线全部预发布加最终版）。从 `0.1.5` 线起，会话 replace 操作的协议字段由 `{ op, start, end }` 改名为 `{ op, startSeq, endSeq }` 且校验严格（只接受这三个字段）；本引擎只输出新形态，在更旧的 DSH（< 0.1.5）上每次 compress 都会被宿主在运行时拒绝（issue #136），因此旧版本不在兼容范围内——请先升级 DSH 再安装。显式区间（而非 caret）是有意为之：上界 `0.2.1-0` 挡住未经验证的下一版本线（house rule；原上界 `0.1.6-0` 在 #190 逐线验证后放宽）。`0.2.0` 线还改了两处读取形状（工具结果调用 id 提升到消息级、新增 `developer/message` 工具注册表行），引擎按线读取、单一构建服务全区间（issue #192）。五个包一并声明为 peer（而非只声明 `dsh-compaction`），是为了让安装在 pnpm 的集成/封存布局下仍能把它们解析到**宿主自己的副本**，而不是某个与宿主不一致的陈旧嵌套副本。
+依赖说明：`dist/index.js` 内联了 acp-kernel，运行时把五个 seam 包 `@deepseek-ai/dsh-compaction`、`@deepseek-ai/dsh-session`、`@deepseek-ai/dsh-llm`、`@deepseek-ai/dsh-tools`、`@deepseek-ai/dsh-settings` 作为**外部依赖**（由 `devDependencies` 提供并同时声明为 `peerDependencies`，`billion-context/node_modules` 已在解析链上）；`@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery` 同为 peer。这五个 seam 包共享同一个 **peer 范围** `>=0.1.5-alpha.1 <0.2.1-0`——覆盖所有已验证的版本线：`0.1.5` 下限加已验证的 `0.1.6` / `0.1.7` / `0.2.0` 线（各线全部预发布加最终版）。从 `0.1.5` 线起，会话 replace 操作的协议字段由 `{ op, start, end }` 改名为 `{ op, startSeq, endSeq }` 且校验严格（只接受这三个字段）；本引擎只输出新形态，在更旧的 DSH（< 0.1.5）上每次 compress 都会被宿主在运行时拒绝（issue #136），因此旧版本不在兼容范围内——请先升级 DSH 再安装。显式区间（而非 caret）是有意为之：上界 `0.2.1-0` 挡住未经验证的下一版本线（house rule；原上界 `0.1.6-0` 在 #190 逐线验证后放宽）。`0.2.0` 线还改了两处读取形状（工具结果调用 id 提升到消息级、新增 `developer/message` 工具注册表行），引擎按线读取、单一构建服务全区间（issue #192）。五个包一并声明为 peer（而非只声明 `dsh-compaction`），是为了让安装在 pnpm 的集成/封存布局下仍能把它们解析到**宿主自己的副本**，而不是某个与宿主不一致的陈旧嵌套副本。
 
 ### 方式 B：打包安装（发布前验证）
 
 ```bash
-cd /Users/yintianan/GitHub/billion-context-dsh
-npm pack                        # 产出 billion-context-dsh-0.2.1.tgz
+cd /Users/yintianan/GitHub/billion-context
+npm pack                        # 产出 billion-context-0.2.1.tgz
 mkdir -p ~/.dsh/profiles/web/node_modules
-npm install --prefix ~/.dsh/profiles/web ./billion-context-dsh-0.2.1.tgz
+npm install --prefix ~/.dsh/profiles/web ./billion-context-0.2.1.tgz
 ```
 
 ### 方式 C：bundle 安装（v0.2.0+，`dsh plugin` / 商店一键装）——装完即全局生效
@@ -33,11 +33,11 @@ npm install --prefix ~/.dsh/profiles/web ./billion-context-dsh-0.2.1.tgz
   disabled: true
 - insert:                # 把 ACP 引擎挂到 host 平面 = 该 profile 全局生效
     - id: compaction-acp
-      name: 'billion-context-dsh'
+      name: 'billion-context'
 ```
 
 ```bash
-dsh plugin --profile web add billion-context-dsh
+dsh plugin --profile web add billion-context
 ```
 
 装完重启 `dsh`（bundle 层在启动时组合）即生效：四个模型工具、`/acp-prune` 命令、nudge、
@@ -56,7 +56,7 @@ dsh plugin --profile web add billion-context-dsh
 不受影响：
 
 ```bash
-dsh plugin --profile web add github:Tyan66666/billion-context-dsh#v0.2.19
+dsh plugin --profile web add github:Tyan66666/billion-context#v0.2.19
 ```
 
 建议带 `#<tag>`，拿到与对应 npm 版本完全一致的产物；不带 ref 则装默认分支的最新构建。
@@ -85,7 +85,7 @@ dsh plugin --profile web add github:Tyan66666/billion-context-dsh#v0.2.19
 
 - insert:
     - id: compaction-acp
-      name: 'billion-context-dsh'
+      name: 'billion-context'
       config:
         # 模型的真实上下文窗口！省略（推荐）时会自动从模型 API 探测
         # （agent.ctx.llm.resolveModelInfo），并自动扣除每请求输出预留
@@ -151,7 +151,7 @@ cp <deepseek-harness>/apps/cli/config/agent-presets/standard/{agent.cordis.yml,p
 
 # 再插入本引擎
 - id: compaction-acp
-  name: 'billion-context-dsh'
+  name: 'billion-context'
   config:
     # 同上：省略时自动探测模型真实窗口（并扣除每请求输出预留
     # defaultMaxTokens），显式配置优先且不扣减（默认 128000 按 128K 窗口）。
@@ -179,7 +179,7 @@ cp <deepseek-harness>/apps/cli/config/agent-presets/standard/{agent.cordis.yml,p
 ## 5. 快速自检（不依赖真实模型）
 
 ```bash
-cd /Users/yintianan/GitHub/billion-context-dsh
+cd /Users/yintianan/GitHub/billion-context
 npm run typecheck && npm test && npm run build
 ```
 
@@ -188,7 +188,7 @@ npm run typecheck && npm test && npm run build
 ## 6. 回滚
 
 ```bash
-rm ~/.dsh/profiles/web/node_modules/billion-context-dsh   # 或对应 tarball 安装
+rm ~/.dsh/profiles/web/node_modules/billion-context   # 或对应 tarball 安装
 # 从 cordis.patch.yml 删除 compaction-acp 插入行；若按 2a 全局方案装的，
 # 还要删除对 compaction-basic 的 disabled: true（恢复默认自动压缩）。
 # 注意：dsh 0.1.0-rc.6+ 上 bundle 自带该 disabled: true，如未显式添加则无需删除。

@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readSessionEvents } from './session-read.mjs';
 
-const METADATA_PLUGINS = new Set(['acp-nudge', 'billion-context-dsh']);
+const METADATA_PLUGINS = new Set(['acp-nudge', 'billion-context']);
 const REAL_CONTENT_PLUGINS = new Set(['@deepseek-ai/dsh-system-prompt', 'user-approval', 'tools-ptc']);
 const REAL_CONTENT_KINDS = new Set(['runtime-context', 'ptc-mode']);
 const AUDITED_RELAY_KINDS = new Set(['subagent-report', 'subagent-settled']);

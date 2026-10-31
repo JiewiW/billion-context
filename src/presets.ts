@@ -25,7 +25,7 @@
  * `protectedLastMessages` (≈ kernel `preserveRecentMessages`) — are deliberately
  * out of scope here; adopting them as named knobs is an owner decision, not a
  * preset detail.
- * @module billion-context-dsh/presets
+ * @module billion-context/presets
  */
 
 /** The five preset tier names. */

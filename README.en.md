@@ -1,4 +1,4 @@
-# billion-context-dsh
+# billion-context
 
 [English](./README.en.md) | [中文](./README.md)
 
@@ -27,23 +27,23 @@ The model decides <em>when</em> and <em>what</em> to compress — not a hard lim
 ---
 
 <p align="center">
-<a href="https://www.npmjs.com/package/billion-context-dsh"><img src="https://img.shields.io/npm/v/billion-context-dsh.svg?style=flat-square" alt="npm"></a>
-<a href="https://github.com/Tyan66666/billion-context-dsh/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/billion-context-dsh.svg?style=flat-square" alt="license"></a>
-<a href="https://github.com/Tyan66666/billion-context-dsh"><img src="https://img.shields.io/badge/GitHub-Tyan66666%2Fbillion--context--dsh-181717?style=flat-square&logo=github" alt="GitHub"></a>
+<a href="https://www.npmjs.com/package/billion-context"><img src="https://img.shields.io/npm/v/billion-context.svg?style=flat-square" alt="npm"></a>
+<a href="https://github.com/Tyan66666/billion-context/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/billion-context.svg?style=flat-square" alt="license"></a>
+<a href="https://github.com/Tyan66666/billion-context"><img src="https://img.shields.io/badge/GitHub-Tyan66666%2Fbillion--context--dsh-181717?style=flat-square&logo=github" alt="GitHub"></a>
 <a href="https://github.com/topics/dsh-plugin"><img src="https://img.shields.io/badge/topic-dsh--plugin-blue?style=flat-square" alt="dsh-plugin"></a>
 </p>
 
 <p align="center">
-<code>npm install billion-context-dsh</code>
+<code>npm install billion-context</code>
 </p>
 
 ---
 
 ## Why?
 
-When conversations get long, the model runs out of context. Most tools hard-truncate — silently dropping earlier messages. **billion-context-dsh** gives the model a `compress` tool: the LLM decides **when** and **what** to compress into high-fidelity summaries, preserving critical details (file paths, decisions, error strings) while reclaiming context space.
+When conversations get long, the model runs out of context. Most tools hard-truncate — silently dropping earlier messages. **billion-context** gives the model a `compress` tool: the LLM decides **when** and **what** to compress into high-fidelity summaries, preserving critical details (file paths, decisions, error strings) while reclaiming context space.
 
-Unlike DSH's built-in auto-compaction (which replaces a range with an automatically generated summary), billion-context-dsh:
+Unlike DSH's built-in auto-compaction (which replaces a range with an automatically generated summary), billion-context:
 
 - **Model-driven** — the model writes the summary itself; there is no second LLM summarization call
 - **Advisory, never imperative** — automatic policy only *nudges*; the model decides whether and when to compress (one exception: a provider-confirmed context overflow lets the engine recover once by itself — see `maxOverflowRetries` in the configuration table)
@@ -51,7 +51,7 @@ Unlike DSH's built-in auto-compaction (which replaces a range with an automatica
 - **Long tasks hold steady** — every step builds on the results before it; key conclusions stay usable and compound, so very long tasks actually finish
 - **Context stays lean** — every request rides on a small, distilled slice of context with only the key information; no bulk compression of large ranges, so details don't decay with it — and tokens stay low
 
-This is the DeepSeek Harness port of [billion-context-pi](https://github.com/ranxianglei/billion-context-pi) (the Pi coding-agent adapter): the compression core ([acp-kernel](https://github.com/ranxianglei/acp-kernel)) is reused verbatim, and the adapter layer was rewritten against DSH's durable-surface model — see [docs](https://github.com/Tyan66666/billion-context-dsh/tree/main/docs) for the verified mapping.
+This is the DeepSeek Harness port of [billion-context-pi](https://github.com/ranxianglei/billion-context-pi) (the Pi coding-agent adapter): the compression core ([acp-kernel](https://github.com/ranxianglei/acp-kernel)) is reused verbatim, and the adapter layer was rewritten against DSH's durable-surface model — see [docs](https://github.com/Tyan66666/billion-context/tree/main/docs) for the verified mapping.
 
 ## Install
 
@@ -62,7 +62,7 @@ This is the DeepSeek Harness port of [billion-context-pi](https://github.com/ran
 Click install in DSH's plugin store, or run:
 
 ```bash
-dsh plugin --profile web add billion-context-dsh
+dsh plugin --profile web add billion-context
 ```
 
 The command installs the package and automatically layers this package's bundle patch ([cordis.patch.yml](cordis.patch.yml)) into the profile's composition. The patch does two things:
@@ -94,7 +94,7 @@ Restart `dsh` afterwards (bundle layers are composed at startup), open a new ses
 **Path B: plain `npm install` (package only — a composition row is required).**
 
 ```bash
-npm install billion-context-dsh
+npm install billion-context
 ```
 
 This only installs the package into your project/global store; it does **not** touch any profile — add a composition row as shown below or the engine never mounts.
@@ -102,7 +102,7 @@ This only installs the package into your project/global store; it does **not** t
 **Install from the git source (`github:` spec — the form the plugin store shows).** The prebuilt `dist/` artifacts are committed to this repository, so a git-source install also works out of the box — **no build step needed**, and pnpm 11's default build-script blocking (`allowBuilds`) never applies to this package:
 
 ```bash
-dsh plugin --profile web add github:Tyan66666/billion-context-dsh#v0.2.27
+dsh plugin --profile web add github:Tyan66666/billion-context#v0.2.27
 ```
 
 Prefer a `#<tag>` ref to get artifacts identical to that npm release; without a ref you get the latest default-branch build. Only building the repo yourself (`npm run build`) requires approving build scripts. Background and trade-offs: [docs/git-source-install-design.md](docs/git-source-install-design.md) (issue #92).
@@ -115,7 +115,7 @@ Two audiences: ① Path B (plain npm install) users, who must write a compositio
 
 ```yaml
 - id: compaction-acp
-  name: 'billion-context-dsh'
+  name: 'billion-context'
   config:
     modelContextLimit: 128000   # optional; omit to auto-detect the model's real window (fallback 128000)
 ```
@@ -134,7 +134,7 @@ Two audiences: ① Path B (plain npm install) users, who must write a compositio
 
 - insert:
     - id: compaction-acp
-      name: 'billion-context-dsh'
+      name: 'billion-context'
       config:
         modelContextLimit: 128000   # optional; omit to auto-detect the model's real window (fallback 128000)
 ```
@@ -180,7 +180,7 @@ Changing a window key (`modelContextLimit` / `autoModelContextLimit`) clears the
 
 # Then mount this engine
 - id: compaction-acp
-  name: 'billion-context-dsh'
+  name: 'billion-context'
   config:
     modelContextLimit: 128000   # optional; omit to auto-detect the model's real window (fallback 128000)
 ```
@@ -225,7 +225,7 @@ A walkthrough of the ACP philosophy this project inherits — how active context
 
 - **Summary source framing**: every compaction summary is prefixed at write time with `[Model-written summary — not user words; re-verify any obligations before relying on them]` — written into BOTH the durable summary event and its checkpoint node (one identical text), with an idempotent projection-time safety net for legacy blocks. Purpose: stop the model from executing obligation-like sentences inside a summary as if they were the user's own words.
 - **Slim nudges**: the compression philosophy/rules sections are no longer repeated in every nudge body (they already live in the system prompt); a nudge carries only the trigger frame + context breakdown + range table. The template path (`config.prompts.nudge`) strips the same sections. Design background: [docs/injection-governance-design.md](docs/injection-governance-design.md).
-- **Not ported yet — `acp_rule` (persistent rules layer)**: upstream billion-context-pi ships a fifth model tool, `acp_rule` (opt-in via `"rules": true`), for recording short principle-level reminders mid-conversation that **survive compaction**. This port does not include it yet. **The kernel-side blocker is gone**: this repo's pin is now acp-kernel **0.0.101**, whose entry point exports the full rules API (`RULE_TOOL_NAME` / `addRule` / `removeRule` / `clearRules` / `formatRulesForPrompt` / `formatRulesList` / `resolveRuleLimits` from `dist/rules.js`), plus the `RuleRecord` / `RulesConfig` types and the `rules` / `nextRuleId` state fields — what remains is the porting work itself (fifth tool + `config.rules` wiring), not a missing kernel surface. Porting plan: [issue #189](https://github.com/Tyan66666/billion-context-dsh/issues/189) (docs fallback → pin bump → fifth tool wired through the kernel API). Workarounds until then: put standing agreements in AGENTS.md (injected instruction rows are barrier-protected and survive compression), or inject them statically via `config.prompts.systemPrompt` — neither supports registering, listing, or revoking rules mid-conversation.
+- **Not ported yet — `acp_rule` (persistent rules layer)**: upstream billion-context-pi ships a fifth model tool, `acp_rule` (opt-in via `"rules": true`), for recording short principle-level reminders mid-conversation that **survive compaction**. This port does not include it yet. **The kernel-side blocker is gone**: this repo's pin is now acp-kernel **0.0.101**, whose entry point exports the full rules API (`RULE_TOOL_NAME` / `addRule` / `removeRule` / `clearRules` / `formatRulesForPrompt` / `formatRulesList` / `resolveRuleLimits` from `dist/rules.js`), plus the `RuleRecord` / `RulesConfig` types and the `rules` / `nextRuleId` state fields — what remains is the porting work itself (fifth tool + `config.rules` wiring), not a missing kernel surface. Porting plan: [issue #189](https://github.com/Tyan66666/billion-context/issues/189) (docs fallback → pin bump → fifth tool wired through the kernel API). Workarounds until then: put standing agreements in AGENTS.md (injected instruction rows are barrier-protected and survive compression), or inject them statically via `config.prompts.systemPrompt` — neither supports registering, listing, or revoking rules mid-conversation.
 
 ## Upstream & credits
 
@@ -300,7 +300,7 @@ This is the upstream [acp-kernel](https://github.com/ranxianglei/acp-kernel) 5-d
 - **compression cannot help**: the throw happens before any compression decision, and the `compress` tool itself goes through the same path;
 - **restarting dsh cannot help either**: kernel state is pure in-memory and never persisted, so after a restart the very first turn must renumber the ENTIRE log from scratch — if the log already holds more than ~100k message-level events, it hits the cap again immediately.
 
-On kernels before 0.0.101, **"a log above ~100k message-level events = the session is permanently unusable under ACP" was a hard wall** for this plugin. The proper fix is widening the ref space from 5 to 7 digits: requested in [acp-kernel#483](https://github.com/ranxianglei/acp-kernel/issues/483) and released in **0.0.101** (tracked in [docs/upstream-tracker.md](docs/upstream-tracker.md); issue [#187](https://github.com/Tyan66666/billion-context-dsh/issues/187) is now resolved).
+On kernels before 0.0.101, **"a log above ~100k message-level events = the session is permanently unusable under ACP" was a hard wall** for this plugin. The proper fix is widening the ref space from 5 to 7 digits: requested in [acp-kernel#483](https://github.com/ranxianglei/acp-kernel/issues/483) and released in **0.0.101** (tracked in [docs/upstream-tracker.md](docs/upstream-tracker.md); issue [#187](https://github.com/Tyan66666/billion-context/issues/187) is now resolved).
 
 **What to do**:
 

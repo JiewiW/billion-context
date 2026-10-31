@@ -13,7 +13,7 @@
  *   construction time (fail-fast, no silent typos);
  * - renderTemplate throws when a known placeholder has no value — callers
  *   must provide every value (e.g. tokens via a typeof fallback).
- * @module billion-context-dsh/prompts
+ * @module billion-context/prompts
  */
 
 import { COMPRESS_PHILOSOPHY, HOW_TO_COMPRESS_RULES, TIER2_DISTILL_RULES, TIER3_CONDENSE_RULES } from 'acp-kernel'

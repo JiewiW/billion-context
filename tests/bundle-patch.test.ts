@@ -44,9 +44,9 @@ test('bundle patch mounts the engine globally with zero config', () => {
 
 	assert.ok(block.includes('- id: compaction-acp'), 'the insert list must mount the engine row `compaction-acp`')
 	assert.equal(
-		block.filter((line) => line.includes("name: 'billion-context-dsh'")).length,
+		block.filter((line) => line.includes("name: 'billion-context'")).length,
 		1,
-		'the engine row must reference `billion-context-dsh` exactly once',
+		'the engine row must reference `billion-context` exactly once',
 	)
 	// Zero-config default: no `config:` on the bundle row — the context window
 	// is auto-detected (fallback 128000) and the built-in prompt copy is used.

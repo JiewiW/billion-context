@@ -14,7 +14,7 @@
  *    snapshot (reused until the next append), with `seq === array index`.
  *  - indexed reads map to `eventAt(seq)` (or `events[seq]` on the legacy
  *    shape) with the same `undefined`-when-absent contract.
- * @module billion-context-dsh/session-events
+ * @module billion-context/session-events
  */
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session';
 /** All events of a session in log order (seq == array index). */

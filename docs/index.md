@@ -1,4 +1,4 @@
-# billion-context-dsh
+# billion-context
 
 > **🛑 Unmaintained** — this project has been superseded by **[ranxianglei/billion-context](https://github.com/ranxianglei/billion-context)**, the unified upstream version with native DeepSeek Harness support. No further updates, bug fixes, or feature work. Published versions remain installable but unsupported.
 
@@ -20,7 +20,7 @@
 
 ## 🔗 Quick links
 
-- **Repository**: [github.com/Tyan66666/billion-context-dsh](https://github.com/Tyan66666/billion-context-dsh)
-- **npm**: [billion-context-dsh@0.2.25](https://www.npmjs.com/package/billion-context-dsh)
-- **Releases**: [GitHub Releases](https://github.com/Tyan66666/billion-context-dsh/releases)（全量历史、变更记录与致谢）
+- **Repository**: [github.com/Tyan66666/billion-context](https://github.com/Tyan66666/billion-context)
+- **npm**: [billion-context@0.2.25](https://www.npmjs.com/package/billion-context)
+- **Releases**: [GitHub Releases](https://github.com/Tyan66666/billion-context/releases)（全量历史、变更记录与致谢）
 - **Upstream**: [billion-context-pi](https://github.com/ranxianglei/billion-context-pi) · [acp-kernel](https://github.com/ranxianglei/acp-kernel) · [opencode-acp](https://github.com/ranxianglei/opencode-acp) · [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)

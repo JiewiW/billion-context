@@ -2,7 +2,7 @@
  * M4 — the `/acp-prune` slash command: a human-friendly window into the same
  * machinery the model tools expose (status, one-shot compress, decompress,
  * runtime settings read/write).
- * @module billion-context-dsh/commands
+ * @module billion-context/commands
  */
 import type { CommandDefinition } from '@deepseek-ai/dsh-commands';
 import { type ToolEnvironment } from './tools.ts';

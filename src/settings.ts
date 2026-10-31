@@ -22,7 +22,7 @@
  * construction-time registrations), and the `settingsEnabled` kill switch
  * itself (a switch that turns off its own plumbing could not be reached if
  * the plumbing broke).
- * @module billion-context-dsh/settings
+ * @module billion-context/settings
  */
 
 import z from '@deepseek-ai/schemastery'

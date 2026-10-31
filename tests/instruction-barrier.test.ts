@@ -106,7 +106,7 @@ test('PR1: classifySurfaceEvent buckets host policy rows; real content stays rea
 
   // The engine's own metadata rows stay metadata (foldable, like main).
   assert.equal(ev({ kind: 'plugin', plugin: 'acp-nudge' }), 'metadata')
-  assert.equal(ev({ kind: 'plugin', plugin: 'billion-context-dsh' }), 'metadata')
+  assert.equal(ev({ kind: 'plugin', plugin: 'billion-context' }), 'metadata')
 
   // Compaction checkpoints.
   assert.equal(ev({ kind: 'plugin', plugin: 'compact' }), 'checkpoint')

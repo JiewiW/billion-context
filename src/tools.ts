@@ -7,7 +7,7 @@
  * call). decompress recovers shadowed content read-only from the log (DSH
  * keeps the originals — V5). search_context scores blocks rebuilt from the
  * log. acp_status reports the block ledger and pressure.
- * @module billion-context-dsh/tools
+ * @module billion-context/tools
  */
 
 import { defineTool, ToolArgsError, type ToolDefinition, type ToolRunContext } from '@deepseek-ai/dsh-tools'
@@ -93,7 +93,7 @@ function textOutput(): {
 
 function requireAgent(exec: ToolRunContext): Agent {
   if (exec.agent === undefined) {
-    throw new Error('billion-context-dsh: tool requires an agent execution context')
+    throw new Error('billion-context: tool requires an agent execution context')
   }
   return exec.agent
 }
@@ -182,7 +182,7 @@ function parseSeq(value: number | string): number {
   const text = String(value).split('#')[0]!.trim()
   const seq = Number(text)
   if (!Number.isInteger(seq) || seq < 0) {
-    throw new Error(`billion-context-dsh: invalid seq "${String(value)}" — use a surface seq like 295`)
+    throw new Error(`billion-context: invalid seq "${String(value)}" — use a surface seq like 295`)
   }
   return seq
 }
@@ -244,7 +244,7 @@ function parseBoundary(value: number | string, byRef: Record<string, string>, se
     const seq = summarySeqOfKernelBlock(session, text)
     if (seq === null) {
       throw new Error(
-        `billion-context-dsh: block "${text}" is not an active block — run acp_status for the live block ids `
+        `billion-context: block "${text}" is not an active block — run acp_status for the live block ids `
         + '(a block-id boundary distills that block, tier 2/3)',
       )
     }
@@ -257,13 +257,13 @@ function parseBoundary(value: number | string, byRef: Record<string, string>, se
   const raw = byRef[ref]
   if (raw === undefined) {
     throw new Error(
-      `billion-context-dsh: mN "${text}" not found on the current surface — re-run acp_status for fresh refs (the surface may have moved)`,
+      `billion-context: mN "${text}" not found on the current surface — re-run acp_status for fresh refs (the surface may have moved)`,
     )
   }
   const seq = Number(String(raw).split('#')[0]!)
   if (!Number.isInteger(seq) || seq < 0) {
     throw new Error(
-      `billion-context-dsh: mN "${text}" maps to a non-seq id "${raw}" — re-run acp_status`,
+      `billion-context: mN "${text}" maps to a non-seq id "${raw}" — re-run acp_status`,
     )
   }
   return seq
@@ -686,7 +686,7 @@ async function handleCompress(env: ToolEnvironment, args: CompressArgs, exec: To
     const endRef = endBlockRef ?? edgeRefForSeq(session, byRaw, resolved.end, 'end', resolved.start)
     if (startRef === undefined || endRef === undefined) {
       throw new Error(
-        `billion-context-dsh: seq ${resolved.start}..${resolved.end} has no assigned ref — `
+        `billion-context: seq ${resolved.start}..${resolved.end} has no assigned ref — `
         + 'the range must be on the current surface (run acp_status for the live seq list)',
       )
     }

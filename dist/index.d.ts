@@ -1,5 +1,5 @@
 /**
- * billion-context-dsh — Active Context Pruning (ACP) for the DeepSeek Harness,
+ * billion-context — Active Context Pruning (ACP) for the DeepSeek Harness,
  * delivered as a `CompactionEngine` backend.
  *
  * The model decides when and what to compress (pure ACP semantics):
@@ -15,7 +15,7 @@
  *
  * ```yaml
  * - id: compaction-billion-context
- *   name: 'billion-context-dsh'
+ *   name: 'billion-context'
  *   config:
  *     modelContextLimit: 128000
  * ```
@@ -23,7 +23,7 @@
  * The package registers `ctx.compaction` plus the four model tools and the
  * `/acp-prune` command when the hosting composition provides `ctx.tools` /
  * `ctx.commands`.
- * @module billion-context-dsh
+ * @module billion-context
  */
 import type { Context } from '@deepseek-ai/cordis';
 import { CompactionEngine, type CompactionAgentContext, type CompactionResult, type CompactionTrigger, type ManualCompactAgentContext } from '@deepseek-ai/dsh-compaction';

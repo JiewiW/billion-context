@@ -1,11 +1,11 @@
 # 设计说明:git 源安装为什么必须带预构建产物(dist 入库)
 
-> 关联 issue:[#92 git 源安装失败:仓库未提供 dist 预构建产物,且 pnpm 默认拦截构建脚本(allowBuilds)](https://github.com/Tyan66666/billion-context-dsh/issues/92)
+> 关联 issue:[#92 git 源安装失败:仓库未提供 dist 预构建产物,且 pnpm 默认拦截构建脚本(allowBuilds)](https://github.com/Tyan66666/billion-context/issues/92)
 > 状态:v0.2.17 起随 dist 入库生效,本文记录决策依据,防止未来被"清理"回去。
 
 ## 问题
 
-从 git 源安装(插件商店展示的形式,如 `dsh plugin add github:Tyan66666/billion-context-dsh`)在 pnpm 11 上必然失败,报 `nothing installable: the plugin(s) need a build step (blocked by default, see allowBuilds) or ship no prebuilt artifacts`。而商店条目里该插件的一键安装命令恰恰就是这个 git 形式。
+从 git 源安装(插件商店展示的形式,如 `dsh plugin add github:Tyan66666/billion-context`)在 pnpm 11 上必然失败,报 `nothing installable: the plugin(s) need a build step (blocked by default, see allowBuilds) or ship no prebuilt artifacts`。而商店条目里该插件的一键安装命令恰恰就是这个 git 形式。
 
 ## 根因(三个,叠加)
 
@@ -15,7 +15,7 @@
 
 ## 为什么"让用户手动放行"救不了
 
-- 对 **git 托管包**,`allowBuilds` 的 key 必须是"包名@git+URL#完整 commit hash"的 depPath 形式,按包名的 key(`billion-context-dsh: true`)**不匹配**,而且依赖的 commit 一变 key 就得跟着换([pnpm#12367](https://github.com/pnpm/pnpm/issues/12367)、[pnpm#12294](https://github.com/pnpm/pnpm/pull/12294))。这条路在 pnpm 11 上基本不可用。
+- 对 **git 托管包**,`allowBuilds` 的 key 必须是"包名@git+URL#完整 commit hash"的 depPath 形式,按包名的 key(`billion-context: true`)**不匹配**,而且依赖的 commit 一变 key 就得跟着换([pnpm#12367](https://github.com/pnpm/pnpm/issues/12367)、[pnpm#12294](https://github.com/pnpm/pnpm/pull/12294))。这条路在 pnpm 11 上基本不可用。
 - 就算放行,包里没有 `prepare` 脚本,`dist` 也构建不出来(根因 2)。
 
 ## 决策:提交 `dist/` 入库,并且保持零构建脚本

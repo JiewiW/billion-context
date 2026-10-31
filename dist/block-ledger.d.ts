@@ -19,7 +19,7 @@
  * throws: an unknown/absent marker or a future version yields "no ledger data"
  * (the caller falls back to tier-1 reconstruction). Old files and future format
  * generations must degrade, not brick.
- * @module billion-context-dsh/block-ledger
+ * @module billion-context/block-ledger
  */
 import type { ContentBlock } from '@deepseek-ai/dsh-llm';
 /** Marker key identifying an ACP block-ledger payload inside a `compaction/summary` rawOutput text block. */

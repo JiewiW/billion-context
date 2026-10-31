@@ -1,4 +1,4 @@
-# Issue 打标签时自动同步到 GitHub Project「billion-context-dsh Roadmap」(project #1):
+# Issue 打标签时自动同步到 GitHub Project「billion-context Roadmap」(project #1):
 #   - 新开/改标签的 issue 自动加入项目(已加入则跳过,幂等)
 #   - priority: P0/P1/P2/backlog 标签 → Priority 单选字段(只响应本次事件的标签,
 #     不重算全部标签——避免覆盖人工在项目面板里改过的值)
@@ -140,8 +140,8 @@ jobs:
           #    (issue link and PR link live in different cells, so match row-wise)
           #    该文件由 PR #84 引入;未合并时文件不存在,跳过这一来源而不是报错
           if [ -f docs/upstream-tracker.md ]; then
-            awk -F'|' '/billion-context-dsh\/issues/ && /acp-kernel\/pull/ {
-              match($0, /billion-context-dsh\/issues\/[0-9]+/); li=substr($0,RSTART,RLENGTH);
+            awk -F'|' '/billion-context\/issues/ && /acp-kernel\/pull/ {
+              match($0, /billion-context\/issues\/[0-9]+/); li=substr($0,RSTART,RLENGTH);
               match($0, /acp-kernel\/pull\/[0-9]+/);            up=substr($0,RSTART,RLENGTH);
               gsub(/.*issues\//,"",li); gsub(/.*pull\//,"",up);
               print li" "up

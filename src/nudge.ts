@@ -3,7 +3,7 @@
  * injected user message with a seq-based compressible-range table (D1:
  * "seq is the ref" — DSH has no in-memory message rewrite hook, so the model
  * targets ranges by surface seq rather than by <acp> tags).
- * @module billion-context-dsh/nudge
+ * @module billion-context/nudge
  */
 
 import {

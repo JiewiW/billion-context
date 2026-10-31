@@ -316,7 +316,7 @@ test('engine-written durable rows round-trip through the released JSONL codec', 
   const pruneData = rowAt(rows, 12, 'compaction/prune').data as { shadowedSeqs: readonly number[] }
   assert.deepEqual(pruneData.shadowedSeqs, [5, 11])
   const tombstone = rowAt(rows, 13, 'user/message')
-  assert.deepEqual(userSource(tombstone), { kind: 'plugin:billion-context-dsh' })
+  assert.deepEqual(userSource(tombstone), { kind: 'plugin:billion-context' })
   assert.deepEqual((tombstone.surfaceOp ?? null), { op: 'replace', startSeq: 5, endSeq: 11 })
   assert.deepEqual(userSource(rowAt(rows, 14, 'user/message')), { kind: 'plugin:acp-nudge' })
 
