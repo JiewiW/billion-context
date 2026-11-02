@@ -4,6 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
 
 # The end-to-end suite drives a REAL DeepSeek agent loop (in-process) with a
 # scripted fake LLM and our engine mounted as the compaction backend, then
