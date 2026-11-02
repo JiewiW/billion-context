@@ -2,7 +2,7 @@ name: E2E
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 # The end-to-end suite drives a REAL DeepSeek agent loop (in-process) with a

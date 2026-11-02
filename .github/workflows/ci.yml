@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
   schedule:
-    # Daily backstop: verify main's committed dist still matches the source
+    # Daily backstop: verify master's committed dist still matches the source
     # even when nothing merged recently (catches a broken dist-bot workflow).
     - cron: '30 3 * * *'
   workflow_dispatch:
@@ -52,12 +52,12 @@ jobs:
       # fail if the committed artifacts differ from what the current source
       # produces — otherwise git installs would silently get stale code.
       #
-      # The dist-bot (.github/workflows/dist-bot.yml) keeps main's dist
+      # The dist-bot (.github/workflows/dist-bot.yml) keeps master's dist
       # fresh: after every merge that can change the build output it
-      # rebuilds and pushes one dist commit directly to main. PR branches
-      # intentionally carry whatever dist main last had — contributors
+      # rebuilds and pushes one dist commit directly to master. PR branches
+      # intentionally carry whatever dist master last had — contributors
       # never touch dist. This check therefore does NOT gate PRs: it
-      # backstops main only, daily on a schedule and on the bot's own
+      # backstops master only, daily on a schedule and on the bot's own
       # dist commits (e.g. catching a broken bot workflow).
       #
       # This comparison assumes deterministic builds across platforms: the

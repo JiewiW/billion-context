@@ -2,21 +2,21 @@ name: Dist Bot
 
 # `dist/` is committed so git-source installs work without a build step
 # (pnpm blocks dependency build scripts by default — issue #92). This bot
-# keeps main's dist fresh WITHOUT touching contributor branches: after every
+# keeps master's dist fresh WITHOUT touching contributor branches: after every
 # merge that can change the build output, it rebuilds and, if the artifacts
-# differ, pushes one dist commit directly to main. PR branches never carry
+# differ, pushes one dist commit directly to master. PR branches never carry
 # dist, so contributors never pull bot commits and never resolve dist
 # conflicts.
 #
-# Pushing to the protected main needs the `DIST_BOT_TOKEN` secret — the
-# maintainer's fine-grained PAT (Contents: read/write on this repo). Main's
+# Pushing to the protected master needs the `DIST_BOT_TOKEN` secret — the
+# maintainer's fine-grained PAT (Contents: read/write on this repo). Master's
 # branch protection has `enforce_admins` disabled, so this admin credential
 # may push directly; the default GITHUB_TOKEN cannot, and humans still land
 # everything via PRs.
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'src/**'
       - 'package.json'
@@ -27,7 +27,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: dist-bot-main
+  group: dist-bot-master
   cancel-in-progress: true
 
 jobs:
@@ -39,8 +39,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The default GITHUB_TOKEN cannot push to the protected main; the
-          # maintainer's PAT can (enforce_admins is disabled on main).
+          # The default GITHUB_TOKEN cannot push to the protected master; the
+          # maintainer's PAT can (enforce_admins is disabled on master).
           token: ${{ secrets.DIST_BOT_TOKEN }}
           fetch-depth: 0
 
@@ -56,7 +56,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Commit fresh dist to main
+      - name: Commit fresh dist to master
         run: |
           if [ -z "$(git status --porcelain -- dist)" ]; then
             echo 'dist/ already matches the source — nothing to commit.'
