@@ -4,7 +4,7 @@ import {
   ManualCompactionError
 } from "@deepseek-ai/dsh-compaction";
 
-// node_modules/acp-kernel/dist/chunk-Q3P5Z2PV.js
+// node_modules/acp-kernel/dist/chunk-B3BFJAP4.js
 import { createRequire } from "module";
 var require2 = createRequire(import.meta.url);
 function defaultCountTokens(text) {
@@ -93,6 +93,28 @@ FORMAT:
 - Cross-block synthesis: if multiple source blocks cover the same topic (same PR, same feature, same bug), MERGE them into a single group of bullets. Do not repeat the same fact from different blocks \u2014 keep it once under the most relevant source header.
 
 SIZE TARGET: 50-150 tokens per source block (excluding the header). If you can't fit it in 150 tokens, you're keeping too much process. If a block has nothing worth keeping (pure noise), output just the header followed by "[no actionable content]."`;
+var QUOTE_LONG_CHARS = 500;
+var QUOTE_LENGTH_COEFF = {
+  /** ≤120 字符 */
+  short: 1,
+  /** 120–500 */
+  medium: 0.62,
+  /** 500–2000 */
+  long: 0.34,
+  /** >2000 */
+  huge: 0.12
+};
+var QUOTE_WEIGHTS = {
+  w1: 0.34,
+  w2: 0.2,
+  w3: 0.12,
+  w4: 0.2,
+  w5: 0.14
+};
+var QUOTE_T_HIGH = 0.4;
+var QUOTE_THETA_STRICT = 0.56;
+var QUOTE_THETA_LOOSE = 0.56;
+var QUOTE_THETA_OUTER = 0.7;
 var TIER3_CONDENSE_RULES = `TIER 3 COMPRESSION \u2014 ULTRA-CONDENSATION
 
 You are compressing distilled summaries (Tier 2) into ultra-condensed facts (Tier 3). The distilled summaries already contain only decisions and outcomes. Your job is to reduce them to bare factual references.
@@ -375,7 +397,7 @@ function clampWindow(text, start, end) {
   return text.slice(s, Math.max(s, e));
 }
 
-// node_modules/acp-kernel/dist/chunk-MXL3G3BN.js
+// node_modules/acp-kernel/dist/chunk-SNH4XGQQ.js
 function createInitialState() {
   return {
     blocks: [],
@@ -528,6 +550,22 @@ function isCovered(id, coveredBases) {
 function isRenderedSummaryMessage(message) {
   return isSummaryMessageId(message.id) && message.role === "system" && message.contentType === "text";
 }
+var USER_VERBATIM_PROVENANCES = /* @__PURE__ */ new Set(["user-turn", "user-material"]);
+function isUserVerbatimProvenance(provenance) {
+  return provenance === void 0 || USER_VERBATIM_PROVENANCES.has(provenance);
+}
+function collectUserVerbatimIds(messages, keep) {
+  const userIndices = [];
+  messages.forEach((message, index) => {
+    if (message.role !== "user") return;
+    if (!isUserVerbatimProvenance(message.provenance)) return;
+    userIndices.push(index);
+  });
+  const kept = keep > 0 ? userIndices.slice(-keep) : userIndices;
+  const ids = /* @__PURE__ */ new Set();
+  for (const index of kept) ids.add(messages[index].id);
+  return ids;
+}
 function prune(messages, state, options = {}) {
   const covered = coveredMessageIds(state);
   if (covered.size === 0) return [...messages];
@@ -551,7 +589,12 @@ function prune(messages, state, options = {}) {
   return stripOrphanedReasoning(
     stripOrphanedToolResults(
       stripOrphanedToolCalls(
-        rebuildMessages(messages, coveredBases, firstUserIndex, anchors)
+        rebuildMessages(messages, coveredBases, firstUserIndex, anchors, {
+          userVerbatimIds: collectUserVerbatimIds(
+            messages,
+            options.userVerbatimKeep ?? 0
+          )
+        })
       )
     )
   );
@@ -636,7 +679,7 @@ function pairSafeAnchorIndex(messages, index, ix) {
   }
   return safe;
 }
-function rebuildMessages(messages, coveredBases, firstUserIndex, anchors) {
+function rebuildMessages(messages, coveredBases, firstUserIndex, anchors, options = {}) {
   const ix = anchors.length > 0 ? buildAnchorPairingIndex(messages) : null;
   const safeAnchors = anchors.map((anchor) => ({
     ...anchor,
@@ -652,6 +695,10 @@ function rebuildMessages(messages, coveredBases, firstUserIndex, anchors) {
       result.push(renderSummary(pending.shift()));
     }
     if (index === firstUserIndex && firstUserIndex >= 0) {
+      result.push(messages[index]);
+      continue;
+    }
+    if (messages[index].role === "user" && (options.userVerbatimIds?.has(messages[index].id) ?? false)) {
       result.push(messages[index]);
       continue;
     }
@@ -847,11 +894,16 @@ function defaultConfig(modelContextLimit, overrides = {}) {
     compress: {
       minCompressRange: 5e3,
       maxSummaryLength: 2e4,
-      minSummaryLength: 50
+      minSummaryLength: 50,
+      // 改进 3 的交付态：enforce（2026-10-29 用户复审同意切 enforce，RL-5 解冻；
+      // 切换前全量复验见 改进施工-交付报告-TASK7-8-9-10-20261029.md §3）。
+      quoteFidelityMode: "enforce"
     },
     protectedTools: [],
     protectedLatestTools: [],
     preserveRecentMessages: 5,
+    // 方案 A 的语义：0 = 全部 user 消息原文保留。
+    userVerbatimKeep: 0,
     preserveRecentTokens: 5e3,
     modelContextLimit,
     absorb: {
@@ -921,6 +973,12 @@ function validateConfig(config) {
   }
   if (config.truncate.terminalEscapeAfter !== void 0 && (!Number.isInteger(config.truncate.terminalEscapeAfter) || config.truncate.terminalEscapeAfter < 0)) {
     errors.push("truncate.terminalEscapeAfter must be an integer >= 0");
+  }
+  if (config.userVerbatimKeep !== void 0 && (!Number.isInteger(config.userVerbatimKeep) || config.userVerbatimKeep < 0)) {
+    errors.push("userVerbatimKeep must be an integer >= 0");
+  }
+  if (config.compress.quoteFidelityMode !== void 0 && config.compress.quoteFidelityMode !== "off" && config.compress.quoteFidelityMode !== "warn" && config.compress.quoteFidelityMode !== "enforce") {
+    errors.push('compress.quoteFidelityMode must be "off", "warn" or "enforce"');
   }
   for (const tier of [config.tiers.tier2Trigger, config.tiers.tier3Trigger]) {
     if (tier < 1) errors.push("tier triggers must be >= 1");
@@ -4868,7 +4926,12 @@ var assignRefsNode = {
   run(io, ctx) {
     const hasProtection = ctx.config.protectedTools.length > 0 || !!ctx.config.isToolProtected || (ctx.config.protectedLatestTools?.length ?? 0) > 0;
     const latest = hasProtection ? collectLatestProtected(io.messages, ctx.config) : void 0;
-    const protectedFn = (m) => hasMediaPayload(m) || (hasProtection ? isMessageProtected(m, ctx.config) || (latest ? isMessageLatestProtected(m, latest) : false) : false);
+    const keptUserIds = collectUserVerbatimIds(
+      io.messages,
+      ctx.config.userVerbatimKeep ?? 0
+    );
+    const protectedFn = (m) => hasMediaPayload(m) || // 用户消息保护：保住「先/不要/必须」这类限定强调
+    keptUserIds.has(m.id) || (hasProtection ? isMessageProtected(m, ctx.config) || (latest ? isMessageLatestProtected(m, latest) : false) : false);
     const refResult = assignRefs(io.messages, {
       existing: io.state.messageRefs,
       nextIndex: highestUsedIndex(io.state.messageRefs) + 1,
@@ -4889,8 +4952,13 @@ var syncBlocksNode = {
 };
 var pruneNode = {
   name: "prune",
-  run(io) {
-    return { ...io, messages: prune(io.messages, io.state) };
+  run(io, ctx) {
+    return {
+      ...io,
+      messages: prune(io.messages, io.state, {
+        userVerbatimKeep: ctx.config.userVerbatimKeep ?? 0
+      })
+    };
   }
 };
 var absorbHideNode = {
@@ -5043,7 +5111,10 @@ var emergencyTruncateNode = {
       ctx.countTokens,
       {
         protectRecentMessages: ctx.config.preserveRecentMessages,
-        includeTextMessages: true
+        // 不再把 user/assistant 散文列为末位候选：95% 用量下切掉用户指令中段
+        // 不留痕、不带角色豁免，是「压掉了不该压的」最直接路径。
+        // 代价：末位安全阀只剩工具结果，见 terminalEscapeAfter 连锁反应。
+        includeTextMessages: false
       }
     );
     const nudge = io.effects.nudge;
@@ -5237,7 +5308,30 @@ function applySingleRange(input) {
       )}. Nothing was compressed. To rewrite or merge those blocks, reference them by block ID (${first}..${last}); otherwise run acp_status and compress a range it reports as compressible.`
     );
   }
+  applyQuoteFidelityGate({
+    mode: input.config.compress.quoteFidelityMode ?? "warn",
+    messages: input.messages,
+    ids: filteredIds,
+    summary: input.spec.summary,
+    maxSummaryLength: input.config.compress.maxSummaryLength,
+    warnings
+  });
   validateCompressionRange(input, filteredIds, consumedBlockIds.length);
+  const protectedUserIds = collectUserVerbatimIds(
+    input.messages,
+    input.config.userVerbatimKeep ?? 0
+  );
+  const hitProtectedUserIds = filteredIds.filter(
+    (id) => protectedUserIds.has(id)
+  );
+  if (hitProtectedUserIds.length > 0) {
+    const keep = input.config.userVerbatimKeep ?? 0;
+    throw new Error(
+      `Cannot compress user message(s) ${hitProtectedUserIds.join(
+        ", "
+      )}: protected verbatim (userVerbatimKeep=${keep}; 0 = every user message). Narrow the range to exclude them, or set userVerbatimKeep to a positive count to release older user messages into compression.`
+    );
+  }
   let compressedTokens = 0;
   for (const id of filteredIds) {
     const message = input.messages.find((entry) => entry.id === id);
@@ -5306,6 +5400,347 @@ function applyPairBoundaryAdjustments(resolved, messages) {
     if (msg) ids.push(msg.id);
   }
   return ids;
+}
+var QUOTE_EMPHASIS_MARKERS = [
+  "\u5FC5\u987B",
+  "\u52A1\u5FC5",
+  "\u4E00\u5B9A",
+  "\u53EA\u80FD",
+  "\u53EA\u9700",
+  "\u5148",
+  "\u518D",
+  "\u4E0D\u8981",
+  "\u522B",
+  "\u7981\u6B62",
+  "\u91CD\u70B9\u662F",
+  "must",
+  "never",
+  "don't",
+  "only",
+  "first",
+  "required"
+];
+var QUOTE_EDGE_CHARS = 200;
+function normalizeQuoteText(text) {
+  return text.replace(
+    /[\uFF01-\uFF5E]/g,
+    (ch) => String.fromCharCode(ch.charCodeAt(0) - 65248)
+  ).replace(/\u3000/g, " ").replace(/[\u2018\u2019\u201B\u2032]/g, "'").replace(/[\u201C\u201D\u201F\u2033]/g, '"').replace(/\s+/g, " ").trim().toLowerCase();
+}
+function splitQuoteSentences(text) {
+  return text.split(/(?<=[。！？；!?;\n])|(?<=\.\s)/).map((sentence) => sentence.trim()).filter((sentence) => sentence.length > 0);
+}
+function emphasisSentencesOf(text) {
+  return splitQuoteSentences(text).filter((sentence) => {
+    const lowered = sentence.toLowerCase();
+    return QUOTE_EMPHASIS_MARKERS.some(
+      (marker) => lowered.includes(marker.toLowerCase())
+    );
+  });
+}
+function degradeQuoteFragment(fragment, maxSummaryLength) {
+  const limit = maxSummaryLength > 0 ? maxSummaryLength : Number.POSITIVE_INFINITY;
+  if (fragment.length <= limit) return fragment;
+  const sentences = emphasisSentencesOf(fragment).join(" ");
+  const head = fragment.slice(0, QUOTE_EDGE_CHARS);
+  const tail = fragment.slice(-QUOTE_EDGE_CHARS);
+  return `${sentences} \u2026${head}\u2026[middle omitted]\u2026${tail}`;
+}
+var QUOTE_FIDELITY_SOURCES = /* @__PURE__ */ new Set(["user-turn", "user-material"]);
+function isQuoteFidelitySource(provenance) {
+  return provenance !== void 0 && QUOTE_FIDELITY_SOURCES.has(provenance);
+}
+var QUOTE_STRONG_MARKERS = [
+  "\u5FC5\u987B",
+  "\u52A1\u5FC5",
+  "\u53EA\u80FD",
+  "\u4E0D\u5F97",
+  "\u7981\u6B62",
+  "\u4E0D\u8981",
+  "\u4E25\u683C",
+  "\u786E\u4FDD",
+  "must",
+  "never",
+  "required",
+  "don't",
+  "do not",
+  "only"
+];
+var QUOTE_NEGATION_MARKERS = [
+  "\u4E0D\u8981",
+  "\u4E0D\u5F97",
+  "\u7981\u6B62",
+  "\u4E0D\u8BB8",
+  "never",
+  "don't",
+  "do not"
+];
+var QUOTE_IMPERATIVE_MARKERS = [
+  "\u8BF7",
+  "\u5E2E\u6211",
+  "\u9EBB\u70E6",
+  "\u4F60",
+  "\u4F60\u4EEC",
+  "\u73B0\u5728",
+  "\u63A5\u4E0B\u6765",
+  "\u7ACB\u5373",
+  "\u9A6C\u4E0A",
+  "\u8BB0\u5F97"
+];
+var QUOTE_MODAL_CHARS = /[的了呢吗啊呀哦吧嘛啦罢喽]/g;
+var QUOTE_IDENT_RE = /[a-z0-9_][a-z0-9_.\-/]{2,}/g;
+var QUOTE_STRUCTURED_LINE = /^\s*(?:[-*+]|\d+[.)、]|\||#{1,6}\s|>|\$|\[|\{|\/\/|<\/?[a-z])/;
+var QUOTE_OUTER_MAX_CHARS = 400;
+var QUOTE_OUTER_MAX_LINES = 3;
+function countQuoteMarkers(text, needles) {
+  let count = 0;
+  for (const needle of needles) count += text.split(needle).length - 1;
+  return count;
+}
+function quoteLengthCoefficient(chars) {
+  if (chars <= 120) return QUOTE_LENGTH_COEFF.short;
+  if (chars <= QUOTE_LONG_CHARS) return QUOTE_LENGTH_COEFF.medium;
+  if (chars <= 2e3) return QUOTE_LENGTH_COEFF.long;
+  return QUOTE_LENGTH_COEFF.huge;
+}
+function importanceOf(text) {
+  const normalized = normalizeQuoteText(text);
+  const per100 = Math.max(normalized.length, 1) / 100;
+  const strongDensity = Math.min(
+    countQuoteMarkers(normalized, QUOTE_STRONG_MARKERS) / per100,
+    1
+  );
+  const negation = Math.min(
+    countQuoteMarkers(normalized, QUOTE_NEGATION_MARKERS) / 3,
+    1
+  );
+  const identDensity = Math.min(
+    (normalized.match(QUOTE_IDENT_RE) ?? []).length / per100,
+    1
+  );
+  const imperative = countQuoteMarkers(normalized, QUOTE_IMPERATIVE_MARKERS) > 0 ? 1 : 0;
+  return QUOTE_WEIGHTS.w1 * strongDensity + QUOTE_WEIGHTS.w2 * negation + QUOTE_WEIGHTS.w3 * identDensity + QUOTE_WEIGHTS.w4 * imperative + QUOTE_WEIGHTS.w5 * quoteLengthCoefficient(normalized.length);
+}
+function quoteTierOf(text) {
+  const chars = text.trim().length;
+  if (chars <= QUOTE_LONG_CHARS) return "strict";
+  return importanceOf(text) >= QUOTE_T_HIGH ? "strict" : "loose";
+}
+function quoteKeywordsOf(text) {
+  const normalized = normalizeQuoteText(text);
+  const tokens = /* @__PURE__ */ new Set();
+  for (const match of normalized.matchAll(QUOTE_IDENT_RE)) {
+    const word = match[0].replace(/^[.\-/]+|[.\-/]+$/g, "");
+    if (word.length >= 2) tokens.add(word);
+  }
+  for (const segment of normalized.split(/[^\u4e00-\u9fff]+/)) {
+    const cleaned = segment.replace(QUOTE_MODAL_CHARS, "");
+    if (cleaned.length === 0) continue;
+    if (cleaned.length === 1) {
+      tokens.add(cleaned);
+      continue;
+    }
+    for (let i = 0; i + 2 <= cleaned.length; i += 1) {
+      tokens.add(cleaned.slice(i, i + 2));
+    }
+  }
+  return tokens;
+}
+function quoteCoverageOf(keywords, summaryTokens) {
+  if (keywords.size === 0) return 1;
+  let hit = 0;
+  for (const token of keywords) if (summaryTokens.has(token)) hit += 1;
+  return hit / keywords.size;
+}
+function quoteOuterSentenceOf(text) {
+  const picked = [];
+  for (const line of text.split("\n")) {
+    if (picked.length >= QUOTE_OUTER_MAX_LINES) break;
+    const trimmed = line.trim();
+    if (trimmed.length < 4) continue;
+    if (QUOTE_STRUCTURED_LINE.test(trimmed)) continue;
+    picked.push(trimmed);
+  }
+  const joined = picked.join("\n");
+  return (joined.length > 0 ? joined : text.trim()).slice(
+    0,
+    QUOTE_OUTER_MAX_CHARS
+  );
+}
+function quoteIdentityTokensOf(text) {
+  const normalized = normalizeQuoteText(text);
+  const out = [];
+  for (const match of normalized.matchAll(QUOTE_IDENT_RE)) {
+    const word = match[0].replace(/^[.\-/]+|[.\-/]+$/g, "");
+    if (word.length >= 4 || /[.\-/]/.test(word)) out.push(word);
+    if (out.length >= 24) break;
+  }
+  return [...new Set(out)].slice(0, 6);
+}
+function missingOfLongMaterial(text, summaryTokens) {
+  if (constraintSentencesOf(text).length === 0) return [];
+  const missing = [];
+  const outer = quoteOuterSentenceOf(text);
+  const outerConstraints = constraintSentencesOf(outer);
+  if (outerConstraints.length > 0) {
+    const joined = outerConstraints.join(" ");
+    if (quoteCoverageOf(quoteKeywordsOf(joined), summaryTokens) < QUOTE_THETA_OUTER) {
+      missing.push(joined);
+    }
+  }
+  const identity = quoteIdentityTokensOf(text);
+  if (identity.length > 0 && !identity.some((token) => summaryTokens.has(token))) {
+    missing.push(`[\u6750\u6599\u6807\u8BC6] ${identity.slice(0, 3).join(" / ")}`);
+  }
+  return missing;
+}
+function constraintSentencesOf(text) {
+  return splitQuoteSentences(text).filter((sentence) => {
+    const lowered = sentence.toLowerCase();
+    if (QUOTE_STRONG_MARKERS.some((marker) => lowered.includes(marker)) || QUOTE_NEGATION_MARKERS.some((marker) => lowered.includes(marker))) {
+      return true;
+    }
+    if (isImperativeSentence(sentence)) return true;
+    if (QUOTE_FORMAT_PATTERN.test(sentence)) return true;
+    if (QUOTE_PLACEHOLDER_PATTERN.test(sentence)) return true;
+    return false;
+  });
+}
+var QUOTE_IMPERATIVE_VERBS = [
+  "\u5BA1\u9605",
+  "\u5BA1\u8BFB",
+  "\u8BFB\u53D6",
+  "\u8BFB\u51FA",
+  "\u5217\u51FA",
+  "\u8C03\u7528",
+  "\u6267\u884C",
+  "\u8FD0\u884C",
+  "\u8F93\u51FA",
+  "\u56DE\u590D",
+  "\u56DE\u7B54",
+  "\u91CD\u8BB2",
+  "\u91CD\u5199",
+  "\u6539\u6210",
+  "\u6539\u5199",
+  "\u91CD\u8FF0",
+  "\u590D\u8FF0",
+  "\u63D0\u53D6",
+  "\u5BFC\u51FA",
+  "\u751F\u6210",
+  "\u521B\u5EFA",
+  "\u65B0\u5EFA",
+  "\u53D1\u9001",
+  "\u63D0\u4EA4",
+  "\u4E0A\u4F20",
+  "\u4E0B\u8F7D",
+  "\u5B89\u88C5",
+  "\u90E8\u7F72",
+  "\u6253\u5370",
+  "\u7EDF\u8BA1",
+  "\u68C0\u7D22",
+  "\u67E5\u627E",
+  "\u641C\u7D22",
+  "\u9A8C\u8BC1",
+  "\u68C0\u67E5",
+  "\u5BF9\u6BD4",
+  "\u6BD4\u8F83",
+  "\u7FFB\u8BD1",
+  "\u8F6C\u6362",
+  "\u89E3\u6790",
+  "\u6253\u5F00",
+  "\u5173\u95ED",
+  "\u5220\u9664",
+  "\u79FB\u52A8",
+  "\u91CD\u547D\u540D"
+];
+var QUOTE_IMPERATIVE_PREFIX = /^(?:请|帮我|麻烦|给我|你|你们|咱们|现在|立刻|马上|接下来|然后|再|先|只|仅|务必|严格|重新|按|照|直接|继续|需要|要)+/;
+function isImperativeSentence(sentence) {
+  const stripped = sentence.trim().replace(/^[\s，,。.、：:；;]+/, "").replace(QUOTE_IMPERATIVE_PREFIX, "").trim();
+  if (stripped.length === 0) return false;
+  for (const verb of QUOTE_IMPERATIVE_VERBS) {
+    if (stripped.startsWith(verb)) return true;
+  }
+  return false;
+}
+var QUOTE_FORMAT_PATTERN = /只(?:回复|输出|返回|打印|列出|写|建|改|动|留|保留|发送|执行|做|说)[^，。；！？]{0,8}?[零一二两三四五六七八九十百千万\d]/;
+var QUOTE_PLACEHOLDER_PATTERN = /[A-Z][A-Z0-9_]{2,}=<[^>]*>/;
+function missingQuoteFragmentsOf(text, provenance, normalizedSummary, summaryTokens) {
+  const trimmed = text.trim();
+  const normalizedText = normalizeQuoteText(trimmed);
+  if (normalizedText.length === 0) return [];
+  if (normalizedSummary.includes(normalizedText)) return [];
+  const emphasis = emphasisSentencesOf(trimmed);
+  if (emphasis.length > 0 && emphasis.every(
+    (sentence) => normalizedSummary.includes(normalizeQuoteText(sentence))
+  )) {
+    return [];
+  }
+  if (provenance === "user-material" && trimmed.length > QUOTE_LONG_CHARS) {
+    return missingOfLongMaterial(trimmed, summaryTokens);
+  }
+  const constraints = constraintSentencesOf(trimmed);
+  if (constraints.length === 0) return [];
+  const tier = quoteTierOf(trimmed);
+  if (tier === "strict") {
+    const missing = [];
+    for (const sentence of constraints) {
+      const normalized = normalizeQuoteText(sentence);
+      if (normalizedSummary.includes(normalized)) continue;
+      const coverage2 = quoteCoverageOf(quoteKeywordsOf(sentence), summaryTokens);
+      if (coverage2 < QUOTE_THETA_STRICT) missing.push(sentence);
+    }
+    return missing;
+  }
+  const coverage = quoteCoverageOf(quoteKeywordsOf(trimmed), summaryTokens);
+  if (coverage >= QUOTE_THETA_LOOSE) return [];
+  return [trimmed.slice(0, QUOTE_EDGE_CHARS)];
+}
+function quoteFidelityViolations(messages, ids, summary) {
+  const normalizedSummary = normalizeQuoteText(summary);
+  const summaryTokens = quoteKeywordsOf(summary);
+  const byId = /* @__PURE__ */ new Map();
+  for (const message of messages) byId.set(message.id, message);
+  const violations = [];
+  for (const id of ids) {
+    const message = byId.get(id);
+    if (message === void 0 || message.role !== "user") continue;
+    if (!isQuoteFidelitySource(message.provenance)) continue;
+    const text = message.text ?? "";
+    if (text.trim().length === 0) continue;
+    const missing = missingQuoteFragmentsOf(
+      text,
+      message.provenance,
+      normalizedSummary,
+      summaryTokens
+    );
+    if (missing.length === 0) continue;
+    violations.push({ messageId: id, missing });
+  }
+  return violations;
+}
+function applyQuoteFidelityGate(input) {
+  if (input.mode === "off") return;
+  const violations = quoteFidelityViolations(
+    input.messages,
+    input.ids,
+    input.summary
+  );
+  if (violations.length === 0) return;
+  const detail = violations.map((violation) => {
+    const fragments = violation.missing.map(
+      (fragment) => degradeQuoteFragment(fragment, input.maxSummaryLength)
+    ).join(" | ");
+    return `message ${violation.messageId}: ${fragments}`;
+  }).join(" ;; ");
+  const headline = `Summary dropped required user wording from ${violations.length} message(s) in the compressed range`;
+  if (input.mode === "enforce") {
+    throw new Error(
+      `${headline} \u2014 add the quoted text verbatim (or all of its emphasised sentences) and retry: ${detail}`
+    );
+  }
+  input.warnings.push(
+    `${headline} (quoteFidelityMode=warn, compression allowed) \u2014 ${detail}`
+  );
 }
 function validateCompressionRange(input, directMessageIds, consumedBlockCount) {
   const cfg = input.config.compress;
@@ -5804,6 +6239,14 @@ function collectVisible(messages, state, countTokens) {
   });
   return { visible, summaryTokens };
 }
+function verbatimSection(keep, userStats) {
+  const head = keep > 0 ? `  userVerbatimKeep=${keep} (last ${keep} preserved; older may enter T3)` : "  userVerbatimKeep=0 (all user messages preserved verbatim)";
+  return [
+    "USER MESSAGE PROTECTION",
+    head,
+    `  user messages: ${userStats.count} msgs / ${formatTokens2(userStats.tokens)} tok (${pct(userStats.tokens, userStats.visibleTotal)}% of visible) \u2014 irreducible floor`
+  ];
+}
 function buildStatusReport(state, messages, countTokens, options = {}) {
   const scope = options.scope;
   const view = options.view ?? "ranges";
@@ -5839,7 +6282,15 @@ function buildStatusReport(state, messages, countTokens, options = {}) {
     state,
     countTokens,
     limit,
-    options.meta
+    options.meta,
+    options.userVerbatimKeep,
+    // 口径：从原始 messages 数 user 消息（受保护的是 BLOCKED、无 ref，
+    // collectVisible 会把它们整个跳过）；分母仍用可见总量，与前一行同口径。
+    {
+      count: messages.filter((m) => m.role === "user").length,
+      tokens: messages.filter((m) => m.role === "user").reduce((sum, m) => sum + countTokens(m.text ?? ""), 0),
+      visibleTotal: visible.reduce((sum, m) => sum + m.tokens, 0)
+    }
   );
 }
 function surfaceLine(meta) {
@@ -5853,7 +6304,7 @@ function surfaceLine(meta) {
   if (parts.length === 0) return null;
   return `ACTIVE SURFACE: ${parts.join(" | ")}`;
 }
-function renderOverview(visible, summaryTokens, blocks, state, countTokens, limit, meta) {
+function renderOverview(visible, summaryTokens, blocks, state, countTokens, limit, meta, userVerbatimKeep, userStats) {
   const lines = [];
   const surface = surfaceLine(meta);
   if (surface) {
@@ -5882,6 +6333,10 @@ function renderOverview(visible, summaryTokens, blocks, state, countTokens, limi
     lines.push(
       `  Top tools: ${topTypes.map(([t, n]) => `${t} (${pct(n, total)}%)`).join(", ")}`
     );
+  }
+  if (userVerbatimKeep !== void 0) {
+    lines.push("");
+    lines.push(...verbatimSection(userVerbatimKeep, userStats));
   }
   lines.push("");
   if (blocks.length === 0) {
