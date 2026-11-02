@@ -4932,8 +4932,17 @@ var assignRefsNode = {
     );
     const protectedFn = (m) => hasMediaPayload(m) || // 用户消息保护：保住「先/不要/必须」这类限定强调
     keptUserIds.has(m.id) || (hasProtection ? isMessageProtected(m, ctx.config) || (latest ? isMessageLatestProtected(m, latest) : false) : false);
+    const existing = {
+      byRaw: { ...io.state.messageRefs.byRaw },
+      byRef: { ...io.state.messageRefs.byRef }
+    };
+    for (const message of io.messages) {
+      if (existing.byRaw[message.id] === BLOCKED_REF && !protectedFn(message)) {
+        delete existing.byRaw[message.id];
+      }
+    }
     const refResult = assignRefs(io.messages, {
-      existing: io.state.messageRefs,
+      existing,
       nextIndex: highestUsedIndex(io.state.messageRefs) + 1,
       isProtected: protectedFn,
       // Ephemeral retrieval injections never consume a ref slot.

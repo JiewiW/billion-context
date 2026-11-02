@@ -106,7 +106,7 @@
 		"@deepseek-ai/dsh-user-approval": "0.2.0-rc.2",
 		"@deepseek-ai/schemastery": "3.18.4",
 		"@types/node": "^26.1.2",
-		"acp-kernel": "https://github.com/JiewiW/acp-kernel/archive/d598a018e5d3e3d4061307b71d1fe4d16703ae50.tar.gz",
+		"acp-kernel": "https://github.com/JiewiW/acp-kernel/archive/a4bedd6df3256ba6404ae580bdb37c19f7e09311.tar.gz",
 		"semver": "^7.7.1",
 		"tsup": "^8.5.1",
 		"tsx": "^4.23.1",

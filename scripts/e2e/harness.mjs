@@ -99,7 +99,14 @@ const runScenario = async (scenario, hooks = {}) => {
     await mountDirectDeepSeekAdapter(ctx, LlmDeepSeek, server, scenario.engine.modelContextLimit)
   }
   await ctx.plugin(TokenMeter)
-  await ctx.plugin(AcpEngine, { ...scenario.engine })
+  // Every fixture compresses its OLDEST user turn, but the host default
+  // userVerbatimKeep (12) keeps the last 12 user inputs verbatim — more than
+  // these short scenarios contain, so every user message gets a BLOCKED ref,
+  // the requested range collapses onto one protected assistant node and the
+  // kernel rejects it. The fixtures pin keep=1 (only the newest input stays
+  // verbatim) so the mechanics under test stay reachable; a scenario can still
+  // override it through its own `engine` block.
+  await ctx.plugin(AcpEngine, { userVerbatimKeep: 1, ...scenario.engine })
   // Mount the REAL JSONL session-persistence backend so every event the engine
   // writes passes through the released writer's encode + admission path DURING
   // the run (issue #183 part 2): an admission-level bug (#163/#181 class —
