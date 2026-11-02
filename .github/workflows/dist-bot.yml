@@ -39,15 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The default GITHUB_TOKEN cannot push to the protected master; the
-          # maintainer's PAT can (enforce_admins is disabled on master).
-          token: ${{ secrets.DIST_BOT_TOKEN }}
+          # The fork has no protected master, so the workflow's own GITHUB_TOKEN
+          # (permissions: contents: write above) is enough to push.
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
