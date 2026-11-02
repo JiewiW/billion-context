@@ -1,0 +1,204 @@
+{
+  "_comment": "TASK-11 人工标注。由 case/sample-user-turns.mjs --finalize 合入 quote-fidelity-fixtures-20261028.json。标注人：辣米（AI），复核日期 2026-10-29。",
+  "_tieBreak": "value3 并列时（既有过程性硬约束又有完成判据）一律标 instruction：这类句子丢失后行为偏离最严重，保真门取向是优先保护。",
+  "_value3": {
+    "instruction": "约束「怎么做」：必须/不要/禁止/严格按/只读/只调用/不要修改",
+    "acceptance": "约束「做成什么样算完」：输出契约、完成判据、通过条件",
+    "none": "两者都没有，丢了无害"
+  },
+  "_type": {
+    "process": "用户自己在说话（指令/叙述）",
+    "question": "提问为主",
+    "emotion": "情绪宣泄为主",
+    "material": "主体是粘贴/转发的内容（日志、报错、文档、任务卡、第三方回答）"
+  },
+  "labels": {
+    "S001": { "value3": "instruction", "type": "process", "note": "指定表述顺序（先结论后条件）的重讲指令" },
+    "S002": { "value3": "instruction", "type": "process", "note": "严格按照本计划书" },
+    "S003": { "value3": "instruction", "type": "process", "note": "祈使短句，丢了就没有任务目标" },
+    "S004": { "value3": "acceptance", "type": "process", "note": "输出契约：只回复两个字；无禁止词" },
+    "S005": { "value3": "acceptance", "type": "process", "note": "输出契约：只输出一行 FILES=" },
+    "S006": { "value3": "none", "type": "process", "note": "" },
+    "S007": { "value3": "instruction", "type": "process", "note": "含「不要解释」" },
+    "S008": { "value3": "none", "type": "process", "note": "" },
+    "S009": { "value3": "acceptance", "type": "process", "note": "输出契约：只输出一行 FILES=" },
+    "S010": { "value3": "none", "type": "material", "note": "纯图片消息，投影成 [image] 占位符" },
+    "S011": { "value3": "instruction", "type": "process", "note": "含「不要输出别的」" },
+    "S012": { "value3": "none", "type": "process", "note": "" },
+    "S013": { "value3": "instruction", "type": "process", "note": "含「不要调用任何工具」+ 输出契约；按并列规则取 instruction" },
+    "S014": { "value3": "none", "type": "material", "note": "纯图片消息" },
+    "S015": { "value3": "instruction", "type": "process", "note": "含「不要解释」" },
+    "S016": { "value3": "none", "type": "material", "note": "纯图片消息" },
+    "S017": { "value3": "instruction", "type": "process", "note": "不要调用任何工具、不要读取或修改任何文件" },
+    "S018": { "value3": "none", "type": "material", "note": "粘贴报错 + 求助「救一下这个会话」，无硬约束" },
+    "S019": { "value3": "instruction", "type": "process", "note": "不要在没有审阅请求时自行发起审查" },
+    "S020": { "value3": "instruction", "type": "process", "note": "编号列表但是指令不是材料（自动判 material 需覆盖）" },
+    "S021": { "value3": "instruction", "type": "process", "note": "不要做别的 / 不要重新措辞、不要增删字段" },
+    "S022": { "value3": "acceptance", "type": "process", "note": "只有输出契约，无禁止词" },
+    "S023": { "value3": "instruction", "type": "process", "note": "同 S017" },
+    "S024": { "value3": "instruction", "type": "process", "note": "target_file 必须传相对路径；自动判 acceptance 是被「集成验收」字样带偏" },
+    "S025": { "value3": "instruction", "type": "process", "note": "严格按步骤、不重新措辞、不增删字段" },
+    "S026": { "value3": "acceptance", "type": "process", "note": "只有输出契约，无禁止词" },
+    "S027": { "value3": "instruction", "type": "process", "note": "同 S017" },
+    "S028": { "value3": "none", "type": "question", "note": "" },
+    "S029": { "value3": "instruction", "type": "process", "note": "严格按步骤、不要做别的" },
+    "S030": { "value3": "instruction", "type": "process", "note": "不要把文件全文内联进 target_content" },
+    "S031": { "value3": "instruction", "type": "process", "note": "同 S017" },
+    "S032": { "value3": "none", "type": "emotion", "note": "误报陷阱：含「别他妈每次…」但那是情绪宣泄，不是硬约束" },
+    "S033": { "value3": "none", "type": "material", "note": "情绪开头 + IL2CPP 堆栈粘贴" },
+    "S034": { "value3": "none", "type": "material", "note": "PowerShell 防火墙输出 + easytier 报错" },
+    "S035": { "value3": "none", "type": "material", "note": "诊断请求 + compress 报错粘贴；无硬约束" },
+    "S036": { "value3": "none", "type": "material", "note": "DSH 启动日志粘贴" },
+    "S037": { "value3": "instruction", "type": "process", "note": "强约束密集：只建卡、禁止 run、禁止执行、必须原样、未完成前置前禁止" },
+    "S038": { "value3": "none", "type": "material", "note": "误报陷阱：审查产物回贴，满篇 accept/reject/partial 但不是验收标准" },
+    "S039": { "value3": "none", "type": "material", "note": "堆栈粘贴 + 发散性建议，无硬约束" },
+    "S040": { "value3": "instruction", "type": "process", "note": "全程只读，不要修改任何文件" },
+    "S041": { "value3": "instruction", "type": "material", "note": "AC-8.2 样例：首行是指令，其余是粘贴的界面/思考泄漏文本" },
+    "S042": { "value3": "instruction", "type": "process", "note": "全程只读，不修改任何文件" },
+    "S043": { "value3": "none", "type": "material", "note": "启动器日志输出" },
+    "S044": { "value3": "none", "type": "material", "note": "第三方（豆包）回答整段粘贴" },
+    "S045": { "value3": "instruction", "type": "process", "note": "编号清单 + 「不要只截片段」" },
+    "S046": { "value3": "instruction", "type": "process", "note": "任务书：编号 P0-1/P1-20 + 推荐实现 + 交付物论证要求" },
+    "S047": { "value3": "none", "type": "material", "note": "工具输出 JSON + 一句感慨" },
+    "S048": { "value3": "instruction", "type": "process", "note": "「注意：不要列出…只列真正可能 TypeError 的」" },
+    "S049": { "value3": "none", "type": "material", "note": "粘贴的思考过程 + compress 报错，无用户指令" },
+    "S050": { "value3": "instruction", "type": "material", "note": "AC-8.2 样例：转发任务卡，首句是原用户请求「严格按照本计划书，执行任务。」，其余是 Lead 的阶段简报" },
+    "S051": { "value3": "none", "type": "material", "note": "【目标文档】任务卡 = 被审文档本身" },
+    "S052": { "value3": "none", "type": "material", "note": "【目标文档】诊断报告" },
+    "S053": { "value3": "instruction", "type": "material", "note": "首两句是提问+指令「严格按计划书执行任务」，其后是粘贴的主窗口内容" },
+    "S054": { "value3": "none", "type": "material", "note": "【目标文档】任务卡（坏样例 2）" },
+    "S055": { "value3": "none", "type": "material", "note": "【目标文档】用户登录模块技术说明" },
+    "S056": { "value3": "none", "type": "material", "note": "事实罗列（重要发现），无硬约束" },
+    "S057": { "value3": "none", "type": "material", "note": "【目标文档】任务卡（坏样例 3）" },
+    "S058": { "value3": "none", "type": "material", "note": "【目标文档】用户登录模块技术说明" },
+    "S059": { "value3": "none", "type": "material", "note": "【目标文档】任务卡（坏样例 1）" },
+    "S060": { "value3": "none", "type": "material", "note": "【目标文档】任务卡（坏样例 2）" },
+    "S061": { "value3": "none", "type": "material", "note": "【目标文档】用户登录模块技术说明" },
+    "S062": { "value3": "instruction", "type": "process", "note": "【高危禁令】禁止×3，本批硬约束最密集的样本" },
+    "S063": { "value3": "none", "type": "material", "note": "【目标文档】任务卡（坏样例 1）" },
+    "S064": { "value3": "none", "type": "material", "note": "【目标文档】用户登录模块技术说明" },
+    "S065": { "value3": "none", "type": "question", "note": "" },
+    "S066": { "value3": "none", "type": "question", "note": "" },
+    "S067": { "value3": "none", "type": "question", "note": "反问句，实为抱怨" },
+    "S068": { "value3": "none", "type": "emotion", "note": "疑问句式但言外之意是愤怒；含辱骂与催促" }
+  },
+  "missFixtures": [
+    {
+      "id": "M01",
+      "fromSample": "S002",
+      "droppedFragment": "严格按照本计划书",
+      "faithfulSummary": "用户上传了计划书文件（[file]），要求严格按照本计划书执行任务。",
+      "lossySummary": "用户上传了计划书文件（[file]），要求执行任务。",
+      "expected": "flag"
+    },
+    {
+      "id": "M02",
+      "fromSample": "S007",
+      "droppedFragment": "不要解释，直接调用",
+      "faithfulSummary": "要求立即调用 doc_review（target_file=original.md、doc_type=generic、mode=full），不要解释、直接调用，完成后只输出 PROBE_ISSUES=<条数>。",
+      "lossySummary": "要求调用 doc_review（target_file=original.md、doc_type=generic、mode=full），完成后输出 PROBE_ISSUES=<条数>。",
+      "expected": "flag"
+    },
+    {
+      "id": "M03",
+      "fromSample": "S013",
+      "droppedFragment": "不要调用任何工具",
+      "faithfulSummary": "明确不要调用任何工具；只在最终回答里用逗号列出全部可调用工具名，并确认是否存在 doc_review。",
+      "lossySummary": "要求用逗号列出当前可调用的全部工具名称，并确认是否存在 doc_review。",
+      "expected": "flag"
+    },
+    {
+      "id": "M04",
+      "fromSample": "S017",
+      "droppedFragment": "不要调用任何工具、不要读取或修改任何文件",
+      "faithfulSummary": "记忆中枢初始化会话说明：本次只需完成初始化确认——不要调用任何工具、不要读取或修改任何文件，用一行中文回复确认即可。",
+      "lossySummary": "记忆中枢初始化会话说明：本次只需完成初始化确认，用一行中文回复确认即可。",
+      "expected": "flag"
+    },
+    {
+      "id": "M05",
+      "fromSample": "S020",
+      "droppedFragment": "逐字、原样（不要重新措辞、不要增删字段）",
+      "faithfulSummary": "第 3 步要求把工具返回的 report 对象逐字、原样（不要重新措辞、不要增删字段）写入 ../reports/review-doc1.json，UTF-8、JSON.stringify(..., null, 2)。",
+      "lossySummary": "第 3 步要求把工具返回的 report 对象写入 ../reports/review-doc1.json，UTF-8、JSON.stringify(..., null, 2)。",
+      "expected": "flag"
+    },
+    {
+      "id": "M06",
+      "fromSample": "S024",
+      "droppedFragment": "target_file 必须传工作区相对路径，绝对路径与 .. 会被拒绝",
+      "faithfulSummary": "用户通过 /doc-review 提交审阅请求：target_file 必须传工作区相对路径，绝对路径与 .. 会被拒绝，用户给绝对路径时先换算。",
+      "lossySummary": "用户通过 /doc-review 提交审阅请求，对任务看板里的两个父卡及其子卡执行审查。",
+      "expected": "flag"
+    },
+    {
+      "id": "M07",
+      "fromSample": "S037",
+      "droppedFragment": "只建卡，禁止 run、禁止执行任何卡片",
+      "faithfulSummary": "只建卡，禁止 run、禁止执行任何卡片；依次创建 2 张 S4PROBE-DELETE 探针卡，全部留在 todo 列，不要执行。",
+      "lossySummary": "依次创建 2 张 S4PROBE-DELETE 探针卡，全部留在 todo 列。",
+      "expected": "flag"
+    },
+    {
+      "id": "M08",
+      "fromSample": "S040",
+      "droppedFragment": "全程只读，不要修改任何文件",
+      "faithfulSummary": "只读侦察代理任务：测试自身工具链是否正常并完整汇报；全程只读，不要修改任何文件。",
+      "lossySummary": "只读侦察代理任务：测试自身工具链是否正常并完整汇报。",
+      "expected": "flag"
+    },
+    {
+      "id": "M09",
+      "fromSample": "S042",
+      "droppedFragment": "全程只读，不修改任何文件",
+      "faithfulSummary": "只读侦察代理：按顺序执行 5 步并在最终回复里完整汇报；全程只读，不修改任何文件。",
+      "lossySummary": "只读侦察代理：按顺序执行 5 步并在最终回复里完整汇报。",
+      "expected": "flag"
+    },
+    {
+      "id": "M10",
+      "fromSample": "S062",
+      "droppedFragment": "【高危禁令（违反即任务失败）】三条禁止项",
+      "faithfulSummary": "目标：把 dsh-doc-review 插件从全局常驻工具改造为 /doc-review 指令触发、仅当前会话可见并启动审阅，全部验收通过后发布到 GitHub。【高危禁令（违反即任务失败）】：禁止修改/补丁/重打包 node_modules 下任何 @deepseek-ai/* 内核包；禁止占用、重启或改动 3080 端口上正在运行的实例；禁止用「工具全局注册 + guard 拒绝调用」作为唯一可见性手段。",
+      "lossySummary": "目标：把 dsh-doc-review 插件从全局常驻工具改造为 /doc-review 指令触发、仅当前会话可见并启动审阅，全部验收通过后发布到 GitHub。阶段索引 S1→S6。",
+      "expected": "flag"
+    }
+  ],
+  "longLists": [
+    {
+      "id": "L01",
+      "title": "数据库迁移脚本硬约束清单",
+      "value3": "instruction",
+      "type": "process",
+      "text": "这次数据库迁移的硬约束，逐条照做，编号即优先级，不得跳项：\n1. 迁移脚本必须自带回滚段，回滚脚本必须在同一事务外独立可跑；不得写成只依赖 ORM 自动推断的 down。\n2. 任何 DROP TABLE / DROP COLUMN 必须先经过 24 小时软删除观察期，观察期内不得物理删除。\n3. 新增字段必须给默认值或允许 NULL，不得在单次迁移里既加非空约束又回填历史数据。\n4. 索引创建必须使用 CONCURRENTLY，且不得在业务高峰（09:00–18:00）执行。\n5. 迁移前后必须各跑一次行数对账，对账不一致必须中止并回滚，不得「先上线再修数据」。\n6. 外键约束只能加在本次新增的表之间，不得对存量表补加外键。\n7. 字符集必须统一为 utf8mb4，排序规则必须为 utf8mb4_0900_ai_ci，不得沿用库默认值。\n8. 大表（> 500 万行）的变更必须分批，单批不得超过 5000 行，批间必须 sleep 100ms。\n9. 迁移日志必须落盘到 logs/migration-<timestamp>.log，不得只打印到 stdout。\n10. 迁移脚本必须通过 npm run migrate:dry 预演，预演失败不得进入正式环境。\n11. 临时表必须以 tmp_ 开头并在脚本结尾显式清理，不得依赖连接断开自动回收。\n12. 迁移完成后必须由第二人复核 EXPLAIN 结果，复核未通过不得关闭工单。"
+    },
+    {
+      "id": "L02",
+      "title": "前端发布流程硬约束清单",
+      "value3": "instruction",
+      "type": "process",
+      "text": "发布流程按编号执行，每条都是硬约束，任何一条不满足不得进入下一步：\n1. 构建必须走 CI，禁止在本地手工 npm run build 后直接上传产物。\n2. 产物必须带 git commit SHA 的构建号，不得使用 latest / stable 这类可变标签。\n3. 发布前必须通过全量单测与 e2e，任一失败即中止；不得用「先发再修」的方式绕过。\n4. 静态资源必须上传 CDN 并开启强缓存，HTML 入口必须设为 no-cache。\n5. 灰度必须先放量到 5%，观察 30 分钟无异常告警才能继续；不得一次性全量。\n6. 回滚预案必须提前写好并贴进发布单，没有回滚步骤的发布不得执行。\n7. 环境变量只能从配置中心读取，不得硬编码进产物。\n8. 发布窗口只能在 02:00–06:00，重大版本必须避开周五。\n9. 发布后 15 分钟内必须有人值守看监控，值守人不得是本次变更的开发者本人。\n10. Sentry 错误率超过基线 1.5 倍必须立即回滚，不得先定位再决定。\n11. 发布记录必须包含变更清单、影响面、回滚版本号，缺一不得归档。"
+    },
+    {
+      "id": "L03",
+      "title": "日志与可观测性改造需求清单",
+      "value3": "instruction",
+      "type": "process",
+      "text": "这一轮日志改造的需求，编号即验收顺序，逐条对照不许漏：\n1. 所有服务必须输出结构化 JSON 日志，不得保留自由文本的 printf 风格输出。\n2. 每条日志必须带 trace_id，跨服务调用必须透传，缺失 trace_id 的请求必须记为告警。\n3. 日志级别只能使用 DEBUG/INFO/WARN/ERROR 四档，不得自造 FATAL / TRACE 之类的级别。\n4. ERROR 日志必须带 error_code 与 stack，二者缺一该条日志视为无效。\n5. 敏感字段（手机号、身份证、token、密码）必须脱敏后落盘，明文出现一次即判本次改造失败。\n6. 单条日志不得超过 4KB，超长必须截断并追加 truncated=true 标记。\n7. 日志采样只能在高 QPS 的健康接口上开启，错误日志一律不得采样。\n8. 指标命名必须遵循 <domain>_<object>_<action> 的下划线规范，不得使用驼峰。\n9. 新增指标必须同时登记到 metrics.md，未登记的指标上线后必须补登记。\n10. 告警规则必须配 runbook 链接，没有 runbook 的告警不得启用。\n11. 看板必须包含 P99 延迟、错误率、饱和度三张图，缺一张不得验收。\n12. 旧日志格式必须保留 30 天兼容期，兼容期内不得直接删除旧解析规则。"
+    },
+    {
+      "id": "L04",
+      "title": "代码审查门禁规则清单（长版，用于标定长度档与密度回落）",
+      "value3": "instruction",
+      "type": "process",
+      "text": "以下规则是本次代码审查门禁的全部内容，共 4 组，逐条硬性执行，不得选择性采纳：\n\nA 组 · 提交前\nA1. 每次提交必须只做一件事，混在一起的改动必须拆成多个 commit。\nA2. commit message 必须遵循 Conventional Commits，不得写「fix bug」「update」这类无信息量的描述。\nA3. 提交前必须本地跑通 lint 与单测，任一失败不得提交。\nA4. 新增文件必须小于 400 行，超过必须拆分；拆分不得靠空行或注释硬切。\nA5. 不得提交任何密钥、证书、真实客户数据；发现一次本次审查即判不通过。\nA6. 格式化改动必须与逻辑改动分开提交，混在一起必须重做。\nA7. 依赖升级必须单独一个 commit，并在 message 里写明升级前后版本号。\n\nB 组 · 评审中\nB1. 每个 PR 必须至少一位 reviewer 批准，作者本人不得自行批准。\nB2. reviewer 必须在 24 小时内响应，超时必须由作者主动升级到团队群。\nB3. 评论必须区分 blocking / nit / question 三种前缀，未标注的评论一律按 blocking 处理。\nB4. blocking 评论必须全部解决才能合并，不得以「后续再修」为由挂起。\nB5. 涉及并发、事务、序列化、加密的改动必须由两名 reviewer 复核，不得例外。\nB6. 测试覆盖率不得低于改动前的基线，下降哪怕 0.1% 也必须补测。\nB7. 新增的公开函数必须带类型注解与文档字符串，注释里不得只复述函数名。\nB8. 魔法数字必须提取为具名常量，禁止在业务逻辑里直接出现裸数字（0/1/-1 除外）。\n\nC 组 · 合并时\nC1. 合并方式只允许 squash merge，不得保留中间 commit 的 merge 节点。\nC2. 合并前必须确认目标分支是最新，落后必须 rebase 而不是 merge。\nC3. CI 全绿才能合并，任何一条流水线红色不得合并，包括「长期红的无关用例」。\nC4. 合并后必须观察 30 分钟主干流水线，失败必须由作者当场处理，不得留到第二天。\nC5. 特性开关默认必须关闭，上线后由配置中心逐环境打开，不得默认全开。\n\nD 组 · 例外与记录\nD1. 任何例外必须在 PR 描述里写明理由与补偿措施，未写明的一律视为违规。\nD2. 紧急情况可以跳过 B1，但必须在合并后 24 小时内补一次事后评审。\nD3. 所有例外必须登记到 review-exceptions.md，未登记的例外在季度审计中一律追责。\nD4. 本清单的修订只能通过 PR 进行，口头约定不得作为执行依据。"
+    },
+    {
+      "id": "L05",
+      "title": "数据导出任务需求清单（长版，编号 + 每行带必须/不得）",
+      "value3": "instruction",
+      "type": "process",
+      "text": "数据导出任务的完整需求如下，编号即验收条目，逐条对照，任何一条不满足不得交付：\n\n一、输入与范围\n1. 导出范围必须由调用方显式传入 start_date 与 end_date，不得默认全量。\n2. end_date 必须小于等于今天，未来日期必须直接拒绝并返回 400。\n3. 单次导出时间跨度不得超过 90 天，超过必须拆分为多个任务，不得一次性拉取。\n4. 租户隔离必须强制，跨租户查询必须在 SQL 层加 tenant_id 条件，不得靠应用层过滤。\n5. 输入参数必须做白名单校验，未登记的字段一律忽略，不得透传进 SQL。\n\n二、执行与性能\n6. 导出必须在后台任务队列执行，不得在 HTTP 请求线程里同步跑。\n7. 单任务内存占用不得超过 512MB，超出必须改为流式写出。\n8. 数据库查询必须走只读副本，不得打到主库。\n9. 分页必须使用游标（keyset），不得使用 OFFSET 深翻页。\n10. 单批读取不得超过 1000 行，批间必须释放连接，不得长事务持有。\n11. 任务必须支持断点续跑，中断后不得从头开始。\n12. 同一个租户的并发导出任务不得超过 2 个，超出必须排队而不是失败。\n\n三、输出与交付\n13. 输出格式必须是 CSV 且首行为表头，不得输出 Excel 专有格式。\n14. 文件编码必须为 UTF-8 with BOM，不得使用 GBK。\n15. 数值字段必须保留原始精度，不得做四舍五入或科学计数法转换。\n16. 时间字段必须统一为 ISO 8601 且带时区，不得输出本地时间裸串。\n17. 文件必须上传到对象存储并生成有效期不超过 1 小时的签名 URL，不得长期公开。\n18. 文件行数必须与任务记录里的 row_count 一致，不一致必须标记失败，不得静默交付。\n19. 空结果必须生成只有表头的空文件并标记成功，不得报错。\n\n四、可观测与合规\n20. 任务状态必须可查询（pending/running/success/failed），不得只有成功失败两态。\n21. 失败必须带错误码与可执行的补救建议，不得只返回「导出失败」。\n22. 每次导出必须留审计日志（谁、何时、什么范围），缺失审计的导出视为违规。\n23. 导出内容包含的个人信息必须按字段级策略脱敏，脱敏规则不得写死在代码里。\n24. 任务记录与审计日志必须保留 180 天，到期自动清理，不得手工删除。\n25. 交付物必须附一份 manifest.json 描述字段含义与生成时间，缺 manifest 不得验收。"
+    }
+  ]
+}

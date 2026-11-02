@@ -1,0 +1,669 @@
+{
+  "generatedAt": "2026-10-29T14:10:44.090Z",
+  "sampleCount": 68,
+  "labeledMaterial": 29,
+  "confusion": {
+    "truePositive": 24,
+    "falseNegative": 5,
+    "falsePositive": 0,
+    "trueNegative": 39
+  },
+  "precision": 1,
+  "recall": 0.8276,
+  "accuracy": 0.9265,
+  "missedMaterialIds": [
+    "S010",
+    "S014",
+    "S016",
+    "S018",
+    "S056"
+  ],
+  "falseMaterialIds": [],
+  "truncatedCaveat": {
+    "count": 10,
+    "missedMaterialIds": [],
+    "falseMaterialIds": []
+  },
+  "structuralExemptions": [
+    {
+      "id": "S010",
+      "reason": "7 字符 [image] 占位：文本无任何内容可保，门即使查也是空查，分类行为等价。",
+      "inRows": true
+    },
+    {
+      "id": "S014",
+      "reason": "7 字符 [image] 占位：文本无任何内容可保，门即使查也是空查，分类行为等价。",
+      "inRows": true
+    },
+    {
+      "id": "S016",
+      "reason": "7 字符 [image] 占位：文本无任何内容可保，门即使查也是空查，分类行为等价。",
+      "inRows": true
+    },
+    {
+      "id": "S018",
+      "reason": "406 字符 < MIN_CHARS(500)：低于分类器最短长度门槛，属设计内的保守面。",
+      "inRows": true
+    },
+    {
+      "id": "S056",
+      "reason": "散文率 0.54 且全文 0 约束句：即使判成材料，保真门对它也是 0 约束不查（D-9B），分类行为等价。",
+      "inRows": true
+    }
+  ],
+  "unexemptedMissedMaterialIds": [],
+  "rows": [
+    {
+      "id": "S001",
+      "chars": 21,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S002",
+      "chars": 21,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S003",
+      "chars": 27,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S004",
+      "chars": 9,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S005",
+      "chars": 41,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S006",
+      "chars": 2,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S007",
+      "chars": 105,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S008",
+      "chars": 2,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S009",
+      "chars": 59,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S010",
+      "chars": 7,
+      "truncated": false,
+      "labeled": true,
+      "predicted": false,
+      "missedMaterial": true,
+      "falseMaterial": false
+    },
+    {
+      "id": "S011",
+      "chars": 87,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S012",
+      "chars": 8,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S013",
+      "chars": 61,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S014",
+      "chars": 7,
+      "truncated": false,
+      "labeled": true,
+      "predicted": false,
+      "missedMaterial": true,
+      "falseMaterial": false
+    },
+    {
+      "id": "S015",
+      "chars": 108,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S016",
+      "chars": 7,
+      "truncated": false,
+      "labeled": true,
+      "predicted": false,
+      "missedMaterial": true,
+      "falseMaterial": false
+    },
+    {
+      "id": "S017",
+      "chars": 158,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S018",
+      "chars": 406,
+      "truncated": false,
+      "labeled": true,
+      "predicted": false,
+      "missedMaterial": true,
+      "falseMaterial": false
+    },
+    {
+      "id": "S019",
+      "chars": 134,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S020",
+      "chars": 481,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S021",
+      "chars": 383,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S022",
+      "chars": 143,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S023",
+      "chars": 158,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S024",
+      "chars": 317,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S025",
+      "chars": 481,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S026",
+      "chars": 143,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S027",
+      "chars": 158,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S028",
+      "chars": 126,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S029",
+      "chars": 383,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S030",
+      "chars": 178,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S031",
+      "chars": 158,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S032",
+      "chars": 124,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S033",
+      "chars": 562,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S034",
+      "chars": 993,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S035",
+      "chars": 1680,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S036",
+      "chars": 1223,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S037",
+      "chars": 1191,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S038",
+      "chars": 1085,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S039",
+      "chars": 596,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S040",
+      "chars": 1447,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S041",
+      "chars": 1623,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S042",
+      "chars": 1348,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S043",
+      "chars": 898,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S044",
+      "chars": 1096,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S045",
+      "chars": 955,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S046",
+      "chars": 1719,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S047",
+      "chars": 520,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S048",
+      "chars": 930,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S049",
+      "chars": 14339,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S050",
+      "chars": 4451,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S051",
+      "chars": 8404,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S052",
+      "chars": 6956,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S053",
+      "chars": 6527,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S054",
+      "chars": 7207,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S055",
+      "chars": 4750,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S056",
+      "chars": 2450,
+      "truncated": false,
+      "labeled": true,
+      "predicted": false,
+      "missedMaterial": true,
+      "falseMaterial": false
+    },
+    {
+      "id": "S057",
+      "chars": 6598,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S058",
+      "chars": 4825,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S059",
+      "chars": 6823,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S060",
+      "chars": 7152,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S061",
+      "chars": 4805,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S062",
+      "chars": 11700,
+      "truncated": true,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S063",
+      "chars": 6802,
+      "truncated": true,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S064",
+      "chars": 4749,
+      "truncated": false,
+      "labeled": true,
+      "predicted": true,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S065",
+      "chars": 3,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S066",
+      "chars": 9,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S067",
+      "chars": 10,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    },
+    {
+      "id": "S068",
+      "chars": 11,
+      "truncated": false,
+      "labeled": false,
+      "predicted": false,
+      "missedMaterial": false,
+      "falseMaterial": false
+    }
+  ]
+}

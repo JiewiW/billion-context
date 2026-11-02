@@ -1,563 +1,343 @@
 # billion-context
 
-<p align="center"><a href="./README.md">English</a> | <a href="./README.zh-CN.md">中文</a></p>
+[中文](./README.md) | [English](./README.en.md)
 
-<p align="center"><strong>Context-compression plugin</strong> — <em>billion-context is all you need.</em></p>
+> **🛑 本项目已停止维护**
+> 不再更新、不再修复问题，也不再受理新功能请求。同类需求请改用 **[ranxianglei/billion-context](https://github.com/ranxianglei/billion-context)**——它已经是官方统一版，原生支持 DeepSeek Harness（同一套实现同时覆盖 pi / OpenCode / Claude Code 等二十多个宿主）。
+> 已发布的历史版本仍可安装使用，但不再提供支持。
 
-<p align="center"><sub>small context windows (100K is enough) · <em>5× fewer tokens</em> · month-long single sessions (billions of tokens) · high compression quality</sub></p>
+> **⚠️ 测试版声明——请勿用于生产环境**
+> 本项目（**v0.2.27**）仍处于开发中的测试版。[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 本身也处于**公开测试版**阶段。**请勿将两者用于工程化 / 生产环境**——预期会有破坏性变更与粗糙之处。
+
+<p align="center">
+<strong>衷心感谢以下项目——请给它们一个 ⭐：</strong>
+<br />
+<a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a> ·
+<a href="https://github.com/ranxianglei/billion-context-pi">billion-context-pi</a> ·
+<a href="https://github.com/ranxianglei/acp-kernel">acp-kernel</a> ·
+<a href="https://github.com/ranxianglei/opencode-acp">opencode-acp</a>
+</p>
+
+<p align="center">
+<strong>Billion-Context</strong> for <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
+<br />
+由模型决定<em>何时</em>压缩、<em>压缩什么</em>——而不是一个硬性上限。
+</p>
+
+---
 
 <p align="center">
 <a href="https://www.npmjs.com/package/billion-context"><img src="https://img.shields.io/npm/v/billion-context.svg?style=flat-square" alt="npm"></a>
-<a href="https://github.com/ranxianglei/billion-context/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/billion-context.svg?style=flat-square" alt="license"></a>
-<a href="https://github.com/ranxianglei/billion-context"><img src="https://img.shields.io/badge/GitHub-ranxianglei%2Fbillion--context-181717?style=flat-square&logo=github" alt="GitHub"></a>
+<a href="https://github.com/Tyan66666/billion-context/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/billion-context.svg?style=flat-square" alt="license"></a>
+<a href="https://github.com/Tyan66666/billion-context"><img src="https://img.shields.io/badge/GitHub-Tyan66666%2Fbillion--context--dsh-181717?style=flat-square&logo=github" alt="GitHub"></a>
+<a href="https://github.com/topics/dsh-plugin"><img src="https://img.shields.io/badge/topic-dsh--plugin-blue?style=flat-square" alt="dsh-plugin"></a>
 </p>
 
 <p align="center">
-<code>npm install -g billion-context --prefix=~/.local</code>
-</p>
-
-<p align="center">
-<a href="https://claude.com/product/claude-code" title="Claude Code"><img src="https://cdn.simpleicons.org/claude/D97757" height="26" alt="Claude Code"></a>&nbsp;
-<a href="https://github.com/openai/codex" title="Codex"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.iconify.design/simple-icons/openai.svg?color=white"><img src="https://api.iconify.design/simple-icons/openai.svg" height="26" alt="Codex"></picture></a>&nbsp;
-<a href="https://opencode.ai" title="OpenCode"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/opencode/FFFFFF"><img src="https://cdn.simpleicons.org/opencode/000000" height="26" alt="OpenCode"></picture></a>&nbsp;
-<a href="https://pi.dev" title="pi"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/pi/FFFFFF"><img src="https://cdn.simpleicons.org/pi/000000" height="26" alt="pi"></picture></a>&nbsp;
-<a href="https://github.com/google-gemini/gemini-cli" title="Gemini CLI"><img src="https://cdn.simpleicons.org/googlegemini/8E75B2" height="26" alt="Gemini CLI"></a>&nbsp;
-<a href="https://www.kimi.com" title="Kimi"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/kimi/FFFFFF"><img src="https://cdn.simpleicons.org/kimi/000000" height="26" alt="Kimi"></picture></a>&nbsp;
-<a href="https://github.com/QwenLM/qwen-code" title="Qwen Code"><img src="https://cdn.simpleicons.org/qwen/6950EF" height="26" alt="Qwen Code"></a>&nbsp;
-<a href="https://github.com/github/copilot-cli" title="GitHub Copilot CLI"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/githubcopilot/FFFFFF"><img src="https://cdn.simpleicons.org/githubcopilot/000000" height="26" alt="GitHub Copilot CLI"></picture></a>&nbsp;
-<a href="https://www.trae.ai" title="TRAE"><img src="https://cdn.simpleicons.org/trae/32F08C" height="26" alt="TRAE"></a>&nbsp;
-<a href="https://www.codebuddy.cn" title="CodeBuddy"><img src="https://cdn.simpleicons.org/codebuddy/6C4DFF" height="26" alt="CodeBuddy"></a>&nbsp;
-<a href="https://qoder.com" title="Qoder"><img src="https://icons.duckduckgo.com/ip3/qoder.com.ico" height="26" alt="Qoder"></a>&nbsp;
-<a href="https://iflow.cn" title="iFlow CLI"><img src="https://img.alicdn.com/imgextra/i4/O1CN01yBfg3x1iNi4YggwIt_!!6000000004401-2-tps-72-72.png" height="26" alt="iFlow CLI"></a>&nbsp;
-<a href="https://www.minimax.io" title="MiniMax Code (mcode)"><img src="https://cdn.simpleicons.org/minimax/E73562" height="26" alt="MiniMax Code"></a>&nbsp;
-<a href="https://www.deepseek.com" title="deepseek-harness (dsh)"><img src="https://cdn.simpleicons.org/deepseek/5786FE" height="26" alt="deepseek-harness"></a>&nbsp;
-<a href="https://ampcode.com" title="Amp"><img src="https://icons.duckduckgo.com/ip3/ampcode.com.ico" height="26" alt="Amp"></a>&nbsp;
-<a href="https://charm.land/crush" title="Crush"><img src="https://icons.duckduckgo.com/ip3/charm.land.ico" height="26" alt="Crush"></a>&nbsp;
-<a href="https://zed.dev" title="Zed"><img src="https://icons.duckduckgo.com/ip3/zed.dev.ico" height="26" alt="Zed"></a>&nbsp;
-<a href="https://aider.chat" title="aider"><img src="https://raw.githubusercontent.com/Aider-AI/aider/main/aider/website/assets/icons/favicon-32x32.png" height="26" alt="aider"></a>&nbsp;
-<a href="https://github.com/aaif-goose/goose" title="goose"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/static/img/logo_dark.png"><img src="https://raw.githubusercontent.com/aaif-goose/goose/main/documentation/static/img/logo_light.png" height="26" alt="goose"></picture></a>&nbsp;
-<a href="https://github.com/NousResearch/hermes-agent" title="hermes"><img src="https://raw.githubusercontent.com/NousResearch/hermes-agent/main/apps/bootstrap-installer/src-tauri/icons/128x128.png" height="26" alt="hermes"></a>&nbsp;
-<a href="https://z.ai" title="zcode (Z.ai)"><img src="https://z-cdn.chatglm.cn/z-ai/static/logo.svg" height="26" alt="zcode"></a>&nbsp;
-<a href="https://omp.sh" title="omp (oh-my-pi, Stencil Labs)"><img src="https://omp.sh/favicon.svg" height="26" alt="omp"></a>&nbsp;
-<a href="https://github.com/1jehuang/jcode" title="jcode"><img src="https://github.com/1jehuang.png" height="26" alt="jcode"></a>
+<code>npm install billion-context</code>
 </p>
 
 ---
 
-> **Cache health at a glance:** a healthy session keeps a **95–97%** prefix-cache hit rate — compression itself costs ≤2%. Sustained lower? Check attribution with `/acp` or `/acp-cache` (see [FAQ](#faq)); usual causes, in order: upstream cache TTL expiry · model switch · a bili bug (please report) · other/unknown.
+## 为什么？
 
-## Community
+当对话变长，模型会耗尽上下文。多数工具直接硬截断——悄悄丢弃早期消息。**billion-context** 给模型一个 `compress` 工具：由 LLM 决定**何时**、**压缩什么**，写成高保真摘要，保留关键细节（文件路径、决策、错误信息）的同时回收上下文空间。
 
-QQ Group:
-1056132097 (full)
-1108730198 (open)
+与 DSH 内置的自动压缩（用自动生成的摘要替换一段范围）不同，billion-context：
 
----
+- **模型驱动** —— 摘要由模型自己书写，没有第二次 LLM 摘要调用
+- **只建议、不强令** —— 自动策略只 *nudge*（提醒），是否压缩、何时压缩由模型决定（唯一的例外：provider 确认的上下文超窗会让引擎自己抢救一次——见配置表的 `maxOverflowRetries`）
+- **持久且可恢复** —— 压缩范围成为 checkpoint 节点，原文保留在 append-only 会话日志中；`decompress` 可恢复，`search_context` 可在块内查找
+- **长任务稳得住** —— 每一步都接着前面的成果走，关键结论持续可用、不断叠加，超长任务更容易跑完
+- **上下文始终精简** —— 每次请求都只用少量、精炼的上下文，只保留关键信息；不做大段统一压缩，细节不随之衰失，token 消耗自然更低
 
-## 📄 Paper / Preprint
+这是 [billion-context-pi](https://github.com/ranxianglei/billion-context-pi)（Pi 编码代理适配器）在 DeepSeek Harness 上的移植：压缩内核（[acp-kernel](https://github.com/ranxianglei/acp-kernel)）原样复用，适配层针对 DSH 的 durable-surface 模型重写——经过验证的映射关系见 [docs](https://github.com/Tyan66666/billion-context/tree/main/docs)。
 
-- **[Model-Driven Incremental Hierarchical Compression: Training-Free Multi-Generational Context Management for Long-Lived Coding Agents](./paper/model-driven-incremental-hierarchical-compression-training-free-multi-generational-context-management-for-long-lived-coding-agents.md)** (English, v0.2)
+## 安装
 
-> 📝 **The paper itself is open-sourced under the MIT License as part of the codebase (`paper/`). It is a living document — anyone may edit it; improvements are welcome via pull request.**
+> 💡 **想让 DeepSeek Harness 帮你装？** 本仓库本身就运行在 DSH 上：把
+> [docs/INSTALL.md](docs/INSTALL.md) 交给会话里的 agent，它会读取指南、解析
+> 你的 profile、编辑组合配置并验证挂载。前提：① 配置写在 `~/.dsh` 下，需要
+> 你批准一次文件权限；② 装完让它调用 `acp_status` 自证。
 
-A production-scale longitudinal study: 4.5 months, three hosts, 174,327 model calls, 18.76B cumulative input tokens (~24.7B across all hosts), zero window violations on 204,800-token models, marathon sessions of 8,584–12,049 calls.
+**方式一（推荐）：DSH 商店 / `dsh plugin` 一键装（bundle）——装完即全局生效，零配置。**
 
----
+在 DSH 的插件商店里点安装，或命令行执行：
 
-`billion-context` sits between **any** agent and its model API, rewriting Anthropic/OpenAI streams with [acp-kernel](https://github.com/ranxianglei/acp-kernel) compression. The model decides **when** and **what** to compress into high-fidelity summaries — not a hard truncation limit.
-
-## Why
-
-Long coding sessions blow up context. Each provider charges per token, and once you pass the context window the session degrades or dies. `billion-context` compresses consumed conversation into layered summaries so you can run a single session for days — billions of tokens through one context window.
-
-Unlike a host's built-in summarizer, compression here is **incremental, reversible, and prefix-cache friendly**: summaries are written in small ranges, can be decompressed on demand, and the cache prefix stays intact.
-
-## How it works
-
-```
-Agent (Claude Code / Codex / Cursor / Aider ...)
-        │  you point the agent's base URL at the proxy
-        ▼
-┌─────────────────┐
-│  billion-context│   1. parse the request (Anthropic or OpenAI shape)
-│     proxy       │   2. run acp-kernel compression on the conversation
-│                 │   3. inject a `compress` tool + compression philosophy
-│                 │   4. forward to the real model API
-│                 │   5. rewrite the streaming response
-└─────────────────┘
-        │
-        ▼
-   real model API (Anthropic / OpenAI / compatible)
+```bash
+dsh plugin --profile web add billion-context
 ```
 
-### Context-management tools
+命令内部会装包并把本包的 bundle 补丁（[cordis.patch.yml](cordis.patch.yml)）自动挂进该 profile 的层栈。补丁做了两件事：
 
-The proxy injects four context-management tools into the conversation; the model calls them itself as context grows, and the proxy executes `compress` server-side so folded ranges stay summarized in history until restored:
+- **禁用 host 的 `compaction-basic`**——避免同一 realm 内两个后端同时注册 `ctx.compaction` 冲突（现代 DSH 的 web bundle 已自带该禁用，此行为幂等兜底，任何受支持版本下都成立）；
+- **把 ACP 引擎挂到 host 平面**——四种模型工具（`compress` / `decompress` / `search_context` / `acp_status`）、`/acp-prune` 命令、nudge、ACP 提示词段对该 profile 的**所有模式**（standard / code / minimal / cordis / 自定义预设）生效。窗口自动探测、工具/命令/nudge 默认全开，**无需任何手工配置**。
 
-- **`compress`** — fold a message range into a detailed summary.
-- **`decompress`** — restore a compressed range when exact details are needed again.
-- **`search_context`** — keyword search over compressed summaries and visible messages.
-- **`acp_status`** — context-usage overview plus which ranges are still compressible.
+装完**重启 `dsh`**（bundle 层在启动时组合），新开会话即可用——让模型调用 `acp_status` 或执行 `/acp-prune status` 自证。shipped 预设（standard / code / cordis）内部的 realm 级 `compaction-basic` 自动压缩兜底仍然保留（这些模式里"自动摘要"照旧，ACP 工具与 nudge 并存）；minimal 等不带 compaction realm 的预设直接使用本引擎。
 
-## Which do I need?
+> **与 DSH 版本的兼容性。** 包把五个运行期 seam 包（`dsh-compaction` /
+> `dsh-session` / `dsh-llm` / `dsh-tools` / `dsh-settings`）都声明为 peer
+> 依赖，共享同一个
+> 范围 `>=0.1.5-alpha.1 <0.2.1-0`——覆盖所有已验证的版本线：`0.1.5` 下限加已验证的 `0.1.6` / `0.1.7` / `0.2.0` 线（各线全部预发布加最终版）。从 `0.1.5` 线起，会话 replace 操作的协议字段由 `{ op, start, end }`
+> 改名为 `{ op, startSeq, endSeq }`，且校验严格（只接受这三个字段）；本引擎只
+> 输出新形态，因此在更旧的 DSH（< 0.1.5）上每次 `compress` 都会被宿主在运行时
+> 拒绝（issue #136）——旧版本不再受支持，请先升级 DSH 再安装本发行版。范围
+> 写成显式区间而非 caret 是**有意为之**：上界 `0.2.1-0` 挡住未经验证的下一版本线
+> （house rule；原上界 `0.1.6-0` 在 #190 逐线验证后放宽）。`0.2.0` 线还改了两处读取形状——工具结果事件的调用 id 提升到消息级、宿主新增 `developer/message` 工具注册表行——引擎对整条范围按线读取，单一构建即可服务全区间（issue #192）。把这五个 seam 包一并声明为 peer（而不只是 `dsh-compaction`），是为了让
+> 安装在 pnpm 的集成/封存布局下仍能把它们解析到**宿主自己的副本**，而不是
+> 某个与宿主不一致的陈旧嵌套副本。
+>
+> 行为注记（0.1.5 起）：宿主不再允许"不可见"替换节点，引擎清理孤立工具消息时
+> 会在其位置留下一条短可见占位消息；宿主的系统提示节点（surface node 0）被排除
+> 在可压缩范围表之外。
 
-Pick by your client:
+**方式二：纯 `npm install`（只装包，需要手写组合行）。**
 
-| Client | Use |
+```bash
+npm install billion-context
+```
+
+这只把包装进你的项目/全局，**不会**触碰任何 profile——请按下方「两种生效范围与自定义」手写组合行，引擎才会挂载。
+
+**git 源安装（`github:` 规格，插件商店展示的形态）。** 预构建产物 `dist/` 已提交到仓库，从 git 源安装同样开箱即用——**无需任何构建步骤**，pnpm 11 默认拦截构建脚本（`allowBuilds`）的机制对这个包不构成障碍：
+
+```bash
+dsh plugin --profile web add github:Tyan66666/billion-context#v0.2.27
+```
+
+建议带 `#<tag>` 安装，拿到与对应 npm 版本完全一致的产物；不带 ref 则装默认分支的最新构建。只有 clone 仓库自行从源码构建（`npm run build`）才需要放行构建。背景与方案取舍见 [docs/git-source-install-design.md](docs/git-source-install-design.md)（issue #92）。
+
+## 两种生效范围与自定义
+
+本节服务于两类人：① 方式二（纯 npm 安装，必须手写组合行）；② 方式一用户想自定义 `config`（bundle 已有默认行为，只需用**同 id** 行覆盖）。
+
+**自定义 config（方式一 bundle 用户）。** 在你的 profile 补丁（如 `~/.dsh/profiles/web/cordis.patch.yml`）里追加一个 `compaction-acp` 行并附 `config:`——同 id 行覆盖 bundle 的默认行：
+
+```yaml
+- id: compaction-acp
+  name: 'billion-context'
+  config:
+    modelContextLimit: 128000   # 可选；省略时自动探测模型真实窗口（回退 128000）
+```
+
+**全局生效（host 平面，所有模式）——推荐**。这是方式一 bundle 的默认行为；纯 npm 安装的用户在 profile 补丁中追加以下全部内容（bundle 用户跳过前两行）：
+
+```yaml
+# ACP 作为全局压缩后端：四个模型工具 + `/acp-prune` 命令 + nudge + ACP 提示词段，
+# 对所有模式（standard / code / minimal / cordis / 自定义预设）生效。
+# 必须同时禁用 host 的 compaction-basic：同一 realm 内两个后端同时
+# provide `ctx.compaction` 会冲突。（bundle 安装已自动带上这两行。）
+- id: compaction-basic
+  disabled: true
+
+- insert:
+    - id: compaction-acp
+      name: 'billion-context'
+      config:
+        modelContextLimit: 128000   # 可选；省略时自动探测模型真实窗口（回退 128000）
+```
+
+**（可选）自定义提示词文案 —— `config.prompts`。** 所有模型可见的提示词（普通/紧急 nudge 首句、上下文分解、增长行、批量提示、tier 蒸馏行、范围表、ACP system prompt 段、四个工具描述）默认**直接复用 acp-kernel 的 `renderNudgeText`**——效率提示、上下文分解、压缩规则、批量提示全部来自 kernel 原文，仅范围表换成 surface-seq 版（kernel 用 mNNNNN 引用，我们架构没有 `<acp>` 标签；seq 范围表同样携带 `[tool X% | text Y%]` 组成占比并 oldest-first 排序，与 kernel 展示语义一致）。覆盖任一 nudge 槽位后自动切换到模板渲染。模板支持命名占位符（如 nudge 的 `{pct}`、`{philosophy}`、范围表的 `{surface}`），**构造期校验**：占位符拼写错误会在引擎启动时抛错（fail-fast），而不是把字面 `{pct}` 漏进模型上下文：
+
+```yaml
+      config:
+        modelContextLimit: 128000
+        prompts:
+          nudge:
+            normal: '上下文使用率 {pct}%。这是效率提示——请尽早压缩保持上下文精简。'  # 中文 nudge 首句
+          tools:
+            acpStatus: '报告 ACP 块账本：压缩块数、回收 token、当前上下文压力。'  # 自定义工具描述
+```
+
+可配置槽位清单、每槽可用占位符、空串/`null` 语义见 [docs/configurable-prompts-design.md](docs/configurable-prompts-design.md)。未配置 `prompts` 的部署直接使用 kernel 渲染（对齐 kernel/pi，见设计文档 v6）。
+
+**（可选）运行时设置 —— 编辑 `~/.dsh/settings.yaml` 或 `/acp-prune config`，无需重启。** 六个标量键（`modelContextLimit`、`autoModelContextLimit`、`nudgeMinContextLimitPct`、`nudgeMaxContextLimitPct`、`nudgeEmergencyThresholdPct`、`autoNudge`，见「配置」表中带「运行时热调」标记的行）在宿主 settings 层有一份可热改的副本：编辑 settings 文件或 `/acp-prune config` 会**立即生效于运行中的会话**（组合行 `config:` 仍是起点——分层为 schema 默认 → 组合行 → 用户 settings 段）：
+
+```yaml
+# ~/.dsh/settings.yaml
+compaction-acp:
+  nudgeMaxContextLimitPct: 0.72   # 保存即生效，无需重启
+```
+
+```text
+/acp-prune config                                  # 列出六个键当前值 + 来源层（user / base / default）
+/acp-prune config set nudgeMaxContextLimitPct 0.72 # 热改一个键
+/acp-prune config set autoNudge false              # 布尔键（false 是合法值）
+/acp-prune config reset nudgeMaxContextLimitPct    # 退回组合行 / 引擎默认
+/acp-prune config reset all
+```
+
+窗口相关键（`modelContextLimit` / `autoModelContextLimit`）改动会清空窗口探测缓存——下一次 pre-step 按新值重新探测（探测失败也会被缓存，正是靠这个机制在修复网关后重新探测）。无 settings provider 的纯 npm 安装组合下 `/acp-prune config` 降级为指引文案；DSH ≥0.1.7 宿主线经更名后的 `SettingsForms` 服务完成写路径（按 profile entry id 寻址，六个键在引擎静态 Config schema 中标 `.volatile()`，提交值自下一次读取起生效、每步重解快照触发诊断）；两种 API 形状都不匹配的宿主干净降级：启动时记一条 warn，引擎与工具不受影响（issues #173/#193）；`settingsEnabled: false` 可整体关闭该集成（组合行专用，不进 settings 层——开关不能关掉自己）。设计细节见 [docs/settings-integration-design.md](docs/settings-integration-design.md)。
+
+**单模式生效（agent preset 的 `compaction` realm）**。先在该 realm 内*禁用（或删除）原有的 `dsh-compaction-basic` 行*，再插入本引擎——同一 realm 内两个后端不能并存：
+
+```yaml
+# 先禁用 realm 内默认后端（或直接删掉这一行）
+- id: compaction-basic
+  disabled: true
+
+# 再插入本引擎
+- id: compaction-acp
+  name: 'billion-context'
+  config:
+    modelContextLimit: 128000   # 可选；省略时自动探测模型真实窗口（回退 128000）
+```
+
+> **每个 agent 只留一个上下文管理器。** 两个后端同时 provide `ctx.compaction` 会冲突——同一 realm 内切勿并存。完整安装与验证指南见 [docs/INSTALL.md](docs/INSTALL.md)。
+
+## 工作原理
+
+DSH 的每个模型请求都派生自其 append-only 会话日志（*surface*）。ACP 语义直接映射到这一模型：
+
+| ACP 概念 | DSH 实现 |
 |---|---|
-| **pi** | [`billion-context`](https://github.com/ranxianglei/billion-context) — `bili pi` (launcher) or `bili plugin install pi` (native); standalone [`billion-context-pi`](https://github.com/ranxianglei/billion-context-pi) remains usable — details: [CLIENTS.md](CLIENTS.md#pi-pidev-coding-agent) |
-| **opencode** (1.x / 2.x) | [`billion-context`](https://github.com/ranxianglei/billion-context) — `bili opencode` (launcher) or `bili plugin install opencode` (native); standalone [`opencode-acp`](https://github.com/ranxianglei/opencode-acp) remains usable on 1.x — full guide: [OpenCode](CLIENTS.md#opencode) |
-| **omp** | [`billion-context`](https://github.com/ranxianglei/billion-context) via `bili omp` (built-in plugin) or `bili plugin install omp` (self-spawning native plugin, no launcher) |
-| **dsh** | `bili dsh` (launcher — full native plugin via `--patch`) or `bili plugin install dsh` ≡ `dsh plugin --profile <name> add billion-context` (one unified lane) — details: [CLIENTS.md](CLIENTS.md) |
-| **kimi** | `bili plugin install kimi` (self-spawning native, Kimi Code ≥ 2.0.0) or `bili kimi` (cert-MITM) or `/bili/` prefix — details: [CLIENTS.md](CLIENTS.md) |
-| **hermes** | `bili plugin install hermes` (self-spawning native, Python plugin #958) or `bili hermes` (cert-MITM) |
-| **zcode** (Z.ai / bigmodel coding plan) | `bili plugin install zcode` (self-spawning native, #1145) or cert-MITM via the GUI's Settings → Network or `/bili/` prefix — details: [CLIENTS.md](CLIENTS.md) |
-| **claude** | `bili claude` (launcher) or `bili plugin install claude` (native posture, #964 — managed settings block + session-owned proxy; see the notes below) |
-| **codex** | `bili codex` (launcher — the full zero-config posture) or `bili plugin install codex` (MCP-shell tools companion: **start bili first** — the shell never spawns a proxy and never routes codex's own traffic) — details: [CLIENTS.md](CLIENTS.md#codex-openai-codex-cli) |
-| **jcode** | [`billion-context`](https://github.com/ranxianglei/billion-context) via `bili jcode` (cert-MITM) or `/bili/` prefix — no native mode (compiled Rust binary, no plugin seam, [#962](https://github.com/ranxianglei/billion-context/issues/962)) |
-| **gemini** (Gemini CLI) | `bili gemini` (launcher, `GOOGLE_GEMINI_BASE_URL` `/bili/` rewrite) or `/bili/` prefix — launcher-only (no in-loop tool seam, #1043) |
-| **iflow** (iFlow CLI) | `bili iflow` (launcher, `IFLOW_BASE_URL` `/bili/` rewrite) or `/bili/` prefix |
-| **qwen** (Qwen Code) | `bili qwen` (launcher, cert-MITM) or `/bili/` prefix |
-| **antigravity** (Antigravity CLI / agy, Google) | `bili antigravity` (launcher, `CLOUD_CODE_URL` `/bili/` rewrite of daily-cloudcode-pa.googleapis.com — Antigravity's real default upstream, #3129) or `/bili/` prefix — no plugin seam (closed Go language_server; its user-plugin surface is additive-only, #2115) — details: [CLIENTS.md](CLIENTS.md) |
-| **mcode** (MiniMax Code) | [`billion-context`](https://github.com/ranxianglei/billion-context) via `bili mcode` (cert-MITM) or `/bili/` prefix — no native mode (event hooks only, no model-request seam, [#1050](https://github.com/ranxianglei/billion-context/issues/1050)) |
-| **aider** | [`billion-context`](https://github.com/ranxianglei/billion-context) via `bili aider` (cert-MITM) or `/bili/` prefix — no native mode (shell-command-only hooks, no tool-injection seam, [#1048](https://github.com/ranxianglei/billion-context/issues/1048)) |
-| **copilot** (GitHub Copilot CLI) | `bili copilot` (launcher, cert-MITM) — closed Go binary, no plugin seam (#1049) |
-| **amp** (Amp CLI) | `bili amp` (launcher, cert-MITM) — closed Go binary, no plugin seam (#1049) |
-| **crush** (Charm Crush) | `bili crush` (launcher, cert-MITM) — open-source Go binary, no plugin seam; built-in provider hosts whitelisted, custom `base_url`s auto-discovered from crush.json (#2340) |
-| **zed** (Zed editor) | `bili zed` (launcher, cert-MITM) — open-source Rust editor, no plugin seam; reqwest honors HTTPS_PROXY, CA via SSL_CERT_FILE (Linux env probing); built-in provider hosts whitelisted, custom `api_url`s auto-discovered from settings.json; loopback providers (ollama/lmstudio) stay direct via NO_PROXY (#2340) |
-| **goose** (Goose CLI) | `bili goose` (launcher) — rustls trusts no CA file, so no cert-MITM: openai/anthropic legs via `OPENAI_HOST`/`ANTHROPIC_HOST`, custom providers via a regenerated `GOOSE_PATH_ROOT` overlay (#1049) |
-| **everything else** (no context hook) | [`billion-context`](https://github.com/ranxianglei/billion-context) — `bili <client>` (launcher, preferred) or `/bili/` prefix |
+| `compress` 工具遮蔽一段范围 | 持久化 `surfaceOp: { op: 'replace' }`——模型书写的摘要成为 checkpoint 节点；原文保留在日志中 |
+| refs（`m00001` 标签） | surface seq，由 nudge 的可压缩范围表携带 |
+| nudge（"效率提示——尽早压缩保持精简"） | 由内核的压力决策在 `agent/pre-step` 注入——效率通知 + 上下文分解 + 压缩规则，语气对齐 kernel/pi；绝非命令 |
+| `decompress` | 从日志只读恢复被遮蔽的原文 |
+| `search_context` | 从日志重建块摘要 + 被遮蔽原文的统一文档集（按日志快照缓存：新事件落盘前重复搜索直接复用，issue #133），交 acp-kernel `searchBlocks`（hybrid：词干化 + CJK bigram + 字符 n-gram 模糊）打分；命中回链所属块 |
+| `acp_status` | CONTEXT BREAKDOWN（tool/text/summaries 占可见总量）+ 压缩块账本 + nudge 决策行 + `Checkpoint seqs` 行（active 块的 `bN → seq` 映射——压缩某个 checkpoint seq 即蒸馏该块，issue #60）；不含上下文窗口；支持 scope/view/tool/sort/limit 钻取 |
+| 块状态 | 内存内核状态 + **日志重建账本**（无旁车文件） |
+| 分层蒸馏（T2/T3） | 再次压缩某块的摘要节点 = 蒸馏该块（tier 2），蒸馏 tier-2 块得 tier 3；tier 与内核块 id 持久化进日志，重启后内核状态从日志再水合、可继续蒸馏 |
+| 压缩记账（影子价格） | `shadowedTokenCount`（宿主占用率据此扣减）**用宿主 token-meter 的固定启发价计价**（`ctx.tokenMeter.measure` 优先、按 `heuristicTokens ?? tokens` 读固定启发价基准，`src/host-tokens.ts` 精确镜像兜底）——绝不混用插件内部的 CJK 感知估算（那是展示货币，混用会把宿主账本扣成负数、卡死中文会话，issue #54），也不按路由重定价的 `node.tokens` 计价（0.1.2+ 图片路由计价下那是请求压力价，读它会让含图片区间的 claim 虚报视觉价、同样扣穿账本，issue #103） |
+| 图片/文件块可见性 | `image`/`file` 块没有字符，早先被投影层静默丢弃——于是它们在压缩范围表里没有 ref、不能当边界、不受内核"最近一条 user 消息"保护，还按 0 token 计价（截图会话里最后一条提问可能被整段压掉，issue #117）。现在 `extractText` 用附件的持久元数据生成一行确定性占位符（`[image image/png shot.png 800x600 4.2KB]`、`[file notes.txt 1.0KB]`，与宿主对文件的 handle 文本投影同源），媒体价格读宿主 token-meter 节点上 `tokens` 与 `heuristicTokens` 的差值（该节点只暴露这两个价格：`tokens` 是当前路由下的请求压力，媒体出现时带适配器声明的视觉价，`heuristicTokens` 是与路由无关的固定启发式——差值即路由多收的那部分），并在此之上**叠加宿主固定启发式对媒体引用的结构价**（`hostMediaStructuralPrice`，镜像宿主自己的 `estimateStructuralBlock`）：今天所有适配器都不声明视觉价，差值恒为 0，只读差值会让图片重新看起来"免费"，范围表行尾标注 `[+N images]`；无媒体的会话不做任何额外测量 |
+| 注入指令行卫生 | 宿主会把 AGENTS.md 等策略文件注入会话表面；压缩其**当前副本**会让宿主立刻重注入同一份文件——压缩→重注→压缩死循环（issue #71）。可压缩范围表把注入行当屏障：永不提供、永不计入段；手动压缩（模型的 compress 工具、人用的 /acp-prune compress 命令）若覆盖某文件的当前副本都会被**直接拒绝**（报错点名行号，并提示过期的旧副本可以压），因为压当前副本没有收益——宿主必重贴。按 `source.changes[].scope`（= 一个文件）分组，只有每组最新副本受保护——被更新取代的旧副本可以安全压缩。skill 目录（`<available_skills>`，dsh-tool-skill 注入）也在同一保护集里，但原因不同：它的重发判定基于目录 digest，感知不到「可见副本已被折叠」——压掉后永不重发，模型永久丢失 skill 发现能力（issue #185）。最新可见目录同样硬拒绝（source 字段缺失时凭正文里的 `<available_skills>` 标记识别），被取代的旧目录可安全压缩自 issue #196 起，**最新一条真实用户回合**（活动提问）同样受硬拒绝保护：覆盖它的 span 会被拒绝并点名可重切的区间（理由单独说明「活动用户消息必须保持可见」），被更新回合取代的旧用户消息仍可正常压缩 |
 
-**Native mode vs standalone extensions.** The host-native plugins (`bili plugin install …`) and the standalone in-process extensions (`billion-context-pi`, `opencode-acp`) are **mutually exclusive** — both active means double compression. The installer makes the switch: it replaces the legacy entries (bare name, `npm:` alias, versioned, path form; array or object shape) and snapshots the original config to `.bili-bak` once; a **project-local** install is not touched — remove that one by hand. As a runtime safety net for manual installs, the native entries set `BILLION_CONTEXT_NATIVE=<host>` synchronously at load so a standalone extension can stand down at action time. On the pi side the marker needs `billion-context-pi` **0.1.72+**, and the pi-native entry scans both pi settings files once its proxy is up and warns loudly when it spots a co-resident legacy entry the installer never saw — that warning is the only visible signal while an old `billion-context-pi` silently double-compresses.
+承载性的压缩指引（工具、哲学、摘要规则、tier 蒸馏/浓缩规则）注册为一次性系统提示段；每条 nudge 携带精简版（效率提示 + 哲学 + 上下文分解 + 压缩规则 + 范围表 + 批量提示）。刻意**不做自动摘要**：自动策略只 nudge 模型（`compactIfNeeded` 返回 null）。
 
+## 视频讲解
 
-## Install
+本项目继承的 ACP 哲学讲解——主动上下文压缩如何在约 20 万 token 内保持会话精简（opencode-acp 与 billion-context-pi）。*视频原作者：[裘香莲](https://space.bilibili.com/)（B 站 UP 主），非本项目制作。*
 
-Linux / macOS — install with a user-level prefix (no `sudo`, no npm config
-changes, and `bili`'s self-update never hits permission errors):
+[![在 B 站观看](https://i1.hdslb.com/bfs/archive/083a77fede77502cbd6b2e206f8aadcc4dacc7ea.jpg)](https://www.bilibili.com/video/BV1qAMR6MEA4/)
 
-```bash
-npm install -g billion-context --prefix=~/.local
-```
+## 模型工具
 
-The `bili` command lands in `~/.local/bin` — already on PATH in most distros;
-if not, add `export PATH="$HOME/.local/bin:$PATH"` to `~/.bashrc` or
-`~/.zshrc`. On nvm or Homebrew Node the default prefix is already user-owned —
-a plain `npm install -g billion-context` works as-is. On Windows the default
-prefix (`%APPDATA%\npm`) is also user-writable — plain `npm install -g billion-context`.
+| 工具 | 作用 |
+| --- | --- |
+| `compress` | 用你书写的紧凑摘要替换 seq 范围（边界自动平衡到 tool-call/result 配对点）；对某块的摘要节点再次压缩 = 分层蒸馏（tier 2/3）。每个 range 可附 `verifiedReadings: string[]`——记录该范围里你实际读过并核实过的文件/章节，随摘要持久化，并在 compress 结果中以 `verified: …` 回显，后续回合不必重读即可知道哪些已核实 |
+| `decompress` | 恢复已压缩块的原始内容（只读）；接受 acp_status 显示的 `bN` 或 compaction id。大块按字符预算分页（默认每页约 7K 字符、至多 100 条），使普通页面低于宿主 tool-result 截断阈值（8192）；`offset`/`limit` + 续页提示走完全块 |
+| `search_context` | 按关键词搜索压缩块摘要与原文（acp-kernel hybrid 检索：词干化 + CJK bigram + 模糊）；命中回链所属块 |
+| `acp_status` | CONTEXT BREAKDOWN（tool/text/summaries 占可见总量）+ 压缩块账本 + nudge 决策行 + `Checkpoint seqs` 行（active 块的 `bN → seq` 蒸馏入口，issue #60）；不含上下文窗口。支持钻取：`scope:"compressed"` 逐块、`scope:"uncompressed"` + `view:"messages"`/`"ranges"` 逐消息/区间，`tool` 过滤、`sort` 排序、`limit` 截断。钻取行 ref 是内核 mN——可直接作为 `compress` 的 `startSeq`/`endSeq`（自动映射为 live surface seq）；`Surface:` 的 seq 同样可用 |
+| `/acp-prune` | 从命令栏执行 status / compress / decompress；status 额外展示 human-side 窗口信息（estimated context、context window 来源、压缩账本、**nudge 仲裁**——`nudge: idle/ACTIVE — reason` 及距下一次 nudge 还差多少 token，与 nudge 路径同一内核判定） |
 
-This installs the `bili` command (`bili-proxy` is kept as an alias). Hitting
-`EACCES` with an old root-owned prefix? Reinstall with `--prefix=~/.local`
-(pass the flag again on any future npm reinstall of `bili`) — that is the
-permanent fix; avoid `sudo`.
+- **摘要标源（模型自写摘要的框架行）**：每条压缩摘要在写入时前置 `[Model-written summary — not user words; re-verify any obligations before relying on them]`——同时写进持久化摘要事件与其 checkpoint 节点（同一份文本），投影路径对旧块幂等补框。目的：阻止模型把摘要里的义务句当成用户原话直接执行。
+- **瘦身 nudge**：压缩哲学/规则段不再随每次 nudge 重复（它们已在系统提示里）；nudge 正文只保留触发框架 + 上下文分解 + 范围表。模板路径（`config.prompts.nudge`）同样摘除这些段落。设计背景：[docs/injection-governance-design.md](docs/injection-governance-design.md)。
+- **未移植的上游能力 — `acp_rule`（永久规则层）**：上游 billion-context-pi 还有第五个模型工具 `acp_rule`（opt-in：`"rules": true`），用于在对话中途登记**能穿越压缩**的原则级提醒。本移植版尚未包含它。**内核侧阻塞已解除**：本仓 pin 已升到 acp-kernel **0.0.101**，其入口已导出完整规则 API（`RULE_TOOL_NAME` / `addRule` / `removeRule` / `clearRules` / `formatRulesForPrompt` / `formatRulesList` / `resolveRuleLimits`，来自 `dist/rules.js`），以及 `RuleRecord` / `RulesConfig` 类型与 state 里的 `rules` / `nextRuleId` 字段——剩下的是移植工作本身（第五工具 + `config.rules` 接线），不再是「没有可接的内核接口」。移植计划见 [issue #189](https://github.com/Tyan66666/billion-context/issues/189)（文档兜底 → pin bump → 用内核 API 接第五工具）。过渡期变通：长期约定写入 AGENTS.md（注入行受屏障/pin 机制保护，天然穿越压缩），或经 `config.prompts.systemPrompt` 静态注入——两者都不支持会话中途登记/列举/撤销规则。
 
-## Quickstart
+## 上游项目与致谢
 
-Three ways to use it — pick one:
+本项目是一个**移植/派生项目**，站在以下上游工作的肩膀上——全部为 MIT 许可。**衷心感谢** [ranxianglei](https://github.com/ranxianglei) 和 DeepSeek Harness 团队创建并开源这些项目：
 
-- **Native plugin (most native):** `bili plugin install <client>` — bili
-  becomes a plugin inside the client; start the client as usual.
-- **Launcher (config-free):** one `bili <client>` command brings up the proxy and
-  the client together — no real config file is ever touched.
-- **URL change (most universal):** prefix your client's baseURL with the proxy
-  origin + `/bili/`.
-
-Mechanism details behind these three options (plugin lifecycle, runtime-info
-protocol, injection priority) live in [TECHNICAL-NOTES.md](TECHNICAL-NOTES.md).
-
-Ports, briefly (#1660): `bili start` (manual) owns `8787`. Everything a lane
-spawns for you (native hooks, launcher lanes) lives in a separate
-self-managed zone starting at `18787` — collisions hop +1 and each lane
-remembers its drift, so zero-config installs never fight you for a port,
-and a deliberate `bili start` daemon is attached by default. Attach is
-lane-aware (#2905): a hook rides its own lane's instance first, NEVER
-another declared lane's — except lanes you list in
-`native.attachLanePriority` — and the 8787 user-zone daemon stays the
-LAST-resort fallback. An
-upgrade-restart that finds the previous build still draining on the lane's
-port waits for it to release (up to 5s) and rebinds the SAME port instead of
-drifting (#1723); only a genuinely occupied port hops +1 — and that hop is
-now logged loudly.
-
-### Option 1 — Native plugin (`bili plugin install pi` / `omp` / `opencode` / `dsh` / `kimi` / `hermes` / `zcode`)
-
-The proxy lives inside the client: install once, then start the client
-exactly as you always do — no launcher command, no env vars, no fixed port,
-no URL edits. Supported today for **pi**, **omp**, **opencode** (1.x and
-2.x), **dsh**, **kimi**, **hermes** and **zcode**:
-
-```bash
-bili plugin install pi          # registers a "billion-context" entry in pi's settings (npm form when bili itself was npm-installed)
-bili plugin install omp         # registers an extensions entry in omp's config.yml (~/.omp/agent/config.yml)
-bili plugin install opencode    # registers the plugin in opencode's real config + disables native auto-compaction
-bili plugin install dsh         # runs 'dsh plugin --profile <name> add billion-context' for every existing profile
-bili plugin install kimi        # writes $KIMI_CODE_HOME/plugins/managed/billion-context/kimi.plugin.json (+ installed.json record); per-session routing block lands in config.toml on first start (Kimi Code >= 2.0.0)
-bili plugin install hermes      # copies the Python plugin into ~/.hermes/plugins/billion-context/ (+ machine-owned bili.json sidecar) and enables it via `hermes plugins enable billion-context`
-bili plugin install zcode       # writes hooks.enabled + a SessionStart hook + mcp.servers.bili into ~/.zcode/cli/config.json; per-session routing lands in the bigmodel provider store on first start
-bili plugin remove <client>     # undo (dsh removes through the same channel; config snapshots go to .bili-bak)
-```
-
-Where a client has its own plugin channel you can also install natively,
-skipping bili commands entirely:
-
-- **dsh:** `dsh plugin --profile <name> add billion-context` is the very
-  command `bili plugin install dsh` drives per profile (npm form only; a git
-  checkout has no published entry — pasting a GitHub address installs source
-  without `dist/` and the bundle never loads) — same end state either way
-  (pnpm into the profile, bundled patch layer mounted by dsh itself); remove
-  through the same channel. See the dsh section below.
-- **opencode:** add the bare npm name to your real config's plugin list —
-  `"plugin": ["billion-context"]` (npm form only; a git checkout has no
-  published entry). The package publishes `exports["./server"]` →
-  `dist/agent/opencode-native.js`, so opencode loads it through its own
-  Npm.add machinery and the plugin self-spawns exactly like the
-  bili-installed form. Do the two things the bili installer would have done
-  for you too: set `"compaction": { "auto": false }` in the same config
-  (otherwise OpenCode's native auto-compaction double-compresses) and keep a
-  manual backup of the file first.
-- **claude:** this repository doubles as a Claude Code plugin marketplace —
-  `/plugin marketplace add ranxianglei/billion-context`, then
-  `/plugin install billion-context@billion-context`, then run
-  `/billion-context:bili-setup` (it drives `bili plugin install claude` for
-  you and tells you to restart). Same end state as the bili installer; the
-  plugin ships no hooks or MCP entries of its own, so nothing
-  double-registers.
-
-For pi / omp / kimi / claude there is no client-side channel — `bili plugin
-install <client>` writes their config entries for you (kimi's declarative
-`kimi.plugin.json` + registry record, claude's managed settings block, …).
-
-Notes:
-
-- Native mode is **mutually exclusive** with the standalone in-process extensions (`billion-context-pi`, `opencode-acp`) — the installer swaps the entries and snapshots the original config (`.bili-bak`).
-- **pi:** native installs wire in built-in subagents by default (`acp_delegate` / `acp_delegate_wait` / `acp_delegate_cancel`) — how to disable them while keeping context compression: [Pi built-in subagents](#pi-built-in-subagents).
-- OpenCode legacy sessions, V1/V2 shapes and caveats: [OpenCode](CLIENTS.md#opencode).
-- `kimi` reports runtime-info at bootstrap only (static headers can't carry per-request window/model values); subagent tool calls are routed by the proxy's outbound tool-use witness ring (#1685) — no model-visible conversation id.
-- `hermes`'s native plugin is Python: it points hermes' httpx stack at the proxy via env vars after a health check and stamps per-request headers through an `llm_request` middleware.
-- `codex` is the one client a plugin install cannot make self-sufficient: codex routes model traffic via env only (no config-file routing seam for the default ChatGPT-login provider — a managed `model_providers` block would force API-key auth and drop subscription login), and an MCP server cannot inject env into its parent. `bili plugin install codex` writes a single `[mcp_servers.bili]` block into `~/.codex/config.toml` (command = node, args = dist/mcp.js) exposing the four ACP tools; at session start the shell resolves a proxy — env `BILI_MCP_PROXY` > the live-instance record (any lane's proxy or a `bili start` daemon) > the 8787 user-zone default (#1660 removed the install-time origin bake, #403) — nothing reachable → `tools/list` fails with -32003. So: start bili first (`bili start` or any client's lane proxy), export HTTPS_PROXY yourself if you also want compression, or use `bili codex` for the zero-config full posture. Mechanics: [CLIENTS.md](CLIENTS.md#codex-openai-codex-cli).
-- `claude` has a native posture (#964): managed settings block + `SessionStart` hook + MCP shell; the hook rides the self-managed port zone (#1660) and re-pins the managed URL to the live origin each session, so port drift self-heals. Opt out with `BILI_NATIVE_CLAUDE=0` (passthrough). Mechanics: [TECHNICAL-NOTES.md](TECHNICAL-NOTES.md). **Known limitation (#2290):** the Claude Desktop app's Code tab (`CLAUDE_CODE_ENTRYPOINT=claude-desktop`) sets its own `ANTHROPIC_BASE_URL` on its embedded Claude Code, overriding the managed one — desktop sessions bypass the proxy entirely while the managed block's `DISABLE_AUTO_COMPACT=1` still applies, so they get neither bili compression nor native auto-compaction. The hook warns loudly at session start (and records it for `bili doctor`, which also flags machines where Claude Desktop is installed alongside the native lane); terminal sessions are unaffected. **Field-tested 2026-10-06 (#2290):** putting `HTTPS_PROXY` in the settings `env` block produced zero CONNECT traffic to a live MITM-enabled proxy on Claude Desktop 2.19675.1 / embedded CC 2.1.288 (Windows 11) — the variable reaches no network stack there, consistent with the CLI finding that CC's undici ignores proxy env vars (why `bili claude` uses the `/bili/` base-URL rewrite instead). As of that version there is no usable routing seam on the desktop Code tab; the lane stays tracked in [#2290](https://github.com/ranxianglei/billion-context/issues/2290) in case upstream changes behavior. Desktop-only users can restore native auto-compact with `bili plugin remove claude`.
-- `zcode` has a native posture (#1145): managed `~/.zcode/cli/config.json` block + per-session provider `baseURL` rewrite. Full mechanics: [CLIENTS.md](CLIENTS.md).
-- `jcode` and `aider` have no native mode (no plugin/MCP/tool-injection seam: #962, #1048) — use `bili jcode` / `bili aider`.
-- `copilot`, `amp` and `goose` are launcher-only (#1049); goose cannot be cert-MITMed (rustls trusts no CA file) and rides plain-HTTP base-URL redirects instead.
-
-### Option 2 — Launcher (`bili pi` / `bili codex` / `bili claude` / `bili omp` / `bili opencode` / `bili hermes` / `bili dsh` / `bili codebuddy` / `bili qoder` / `bili trae` / `bili jcode` / `bili kimi` / `bili gemini` / `bili iflow` / `bili qwen` / `bili antigravity` / `bili mcode` / `bili aider` / `bili copilot` / `bili amp` / `bili goose`)
-
-The launcher wraps a client in one command: it starts a proxy on an
-independent port (a fresh instance is always spawned — a port is never
-reused), then points the client at it — **certificate-based MITM** where the
-client honors proxy/CA env vars, or an isolated **`/bili/` config rewrite**
-where it doesn't. No real config file is ever edited; the client's own
-config is READ to discover which HTTPS upstream hosts it talks to, and those
-hosts are whitelisted for MITM so the proxy can TLS-terminate exactly them
-and blind-tunnel everything else.
-
-```bash
-bili pi                               # launch pi through the proxy — file-free (#535): env + extension registerProvider, real ~/.pi untouched
-bili codex                            # launch codex through the proxy
-bili claude                           # launch claude through the proxy
-bili omp                              # pi-style, file-free (#535): env + extension registerProvider + compaction cancel, real ~/.omp untouched
-bili opencode                         # OpenCode (1.x & 2.x): full guide in the [OpenCode](CLIENTS.md#opencode) section below
-bili hermes                           # file-free (#535): hermes proxy env (HTTPS_PROXY + combined CA bundle via SSL_CERT_FILE) — https via CONNECT MITM, http via absolute-form forward proxy; real ~/.hermes untouched
-bili dsh                              # deepseek-harness: full native plugin injected via --patch (#941) — real dsh tools, session-bound /acp + /acp-cache (plugin mode); non-loopback upstreams ride proxy envs, loopback keeps the overlay DSH_HOME rewrite (#535); dsh auto-compaction off everywhere — host plane via the bundle patch, web-profile presets at load time (#1772/#2474/#3354)
-bili codebuddy                        # Tencent CodeBuddy Code CLI: CODEBUDDY_BASE_URL /bili/ rewrite (OpenAI chat completions wire), budget aligned via CODEBUDDY_AUTO_COMPACT_WINDOW; real ~/.codebuddy untouched
-bili qoder                            # qoder: model endpoint is hardcoded https (no /bili/ rewrite possible) — cert-MITM via HTTPS_PROXY + NODE_EXTRA_CA_CERTS, default model hosts whitelisted (#653)
-bili trae                             # Trae CLI (ByteDance, closed Go binary, no base-URL override) — cert-MITM via HTTPS_PROXY + SSL_CERT_FILE, model host from TRAE_CLI_API_HOST or the default enterprise gateway (#655)
-bili jcode                            # jcode (Rust agent harness) — env-only cert-MITM launch: HTTPS_PROXY + SSL_CERT_FILE, model host api.z.ai whitelisted, local loopback providers stay direct via NO_PROXY
-bili kimi                             # Kimi Code CLI (Moonshot): standard proxy envs except an unconditional loopback bypass — https via cert-MITM, http via absolute-form forward proxy; loopback endpoints inventoried with a manual /bili/ hint (#757)
-bili gemini                           # Gemini CLI (Google): GOOGLE_GEMINI_BASE_URL /bili/ rewrite to generativelanguage.googleapis.com (Google native wire), real ~/.gemini untouched
-bili iflow                            # iFlow CLI: IFLOW_BASE_URL /bili/ rewrite to apis.iflow.cn/v1 (OpenAI chat-completions wire), real ~/.iflow untouched
-bili qwen                             # Qwen Code (multi-protocol gemini-cli fork, no base-URL hook): cert-MITM via HTTPS_PROXY + NODE_EXTRA_CA_CERTS, default DashScope/Qwen model hosts whitelisted, custom relays via --mitm-domain
-bili antigravity                      # Antigravity CLI (agy, Google): CLOUD_CODE_URL /bili/ rewrite of daily-cloudcode-pa.googleapis.com — the real default upstream (bare cloudcode-pa 400s on /v1internal:*, #3129); undocumented language-server env override, v2.19.1 binary-verified; wire recognized as Google native by path (#2115)
-bili mcode                            # MiniMax Code CLI: same shape as kimi (proxy envs, unconditional loopback bypass, cert-MITM/absolute-form); session bound via X-Mavis-Session-Id (#1050)
-bili aider                            # Aider (Python pair programmer): cert-MITM via HTTPS_PROXY + SSL_CERT_FILE/REQUESTS_CA_BUNDLE; endpoint from OPENAI_API_BASE / ANTHROPIC_BASE_URL / --openai-api-base / .aider.conf.yml (#1048)
-bili copilot                          # Copilot CLI (GitHub, closed Go binary) — cert-MITM via HTTPS_PROXY + SSL_CERT_FILE, api.githubcopilot.com + per-plan subdomains whitelisted (#1049)
-bili amp                              # Amp CLI (Sourcegraph, closed Go binary) — cert-MITM via HTTPS_PROXY + SSL_CERT_FILE, ampcode.com whitelisted (#1049)
-bili goose                            # Goose (Block, Rust/reqwest): rustls release builds trust no CA file — openai/anthropic legs via OPENAI_HOST/ANTHROPIC_HOST, custom providers via a regenerated GOOSE_PATH_ROOT overlay (/bili/ rewrites, real config untouched) (#1049)
-bili pi --mitm-domain api.foo.com     # add a domain to the MITM whitelist
-```
-
-### Option 3 — URL change (`/bili/` prefix)
-
-Start the proxy:
-
-```bash
-bili
-```
-
-Then just prefix your client's existing baseURL with `http://localhost:8787/bili/`.
-The full upstream URL is embedded in the path, so the proxy knows where to
-forward without any config:
-
-```
-client baseURL before:  https://api.openai.com/v1
-client baseURL after:   http://localhost:8787/bili/https://api.openai.com/v1
-```
-
-For more per-client configuration examples, see the web UI guide at [http://localhost:8787](http://localhost:8787).
-
-**Verify.** With the proxy running and your config saved, check it answers
-and that your first real request shows compression activity in the log:
-
-```bash
-# Health check (proxy up + where it forwards)
-curl -s http://localhost:8787/__bili/health
-# → {"ok":true,"upstream":"https://api.anthropic.com"}
-
-# Live session stats (after a real request)
-curl -s http://localhost:8787/__bili/stats
-```
-
-Then send one message from your client and watch the log
-(`~/.local/state/billion-context/bili.log`, also printed to stderr). You
-should see a `processTurn` line per request, and once the conversation grows,
-`[acp-usage] round N input=X cached=Y (cache hit Z%)` + a `compress` event.
-
-### Client deep dives
-
-Everything that doesn't fit in one Quickstart line — how each client's lanes attach, what gets written where, and known limitations — lives in **[CLIENTS.md](CLIENTS.md)**: dsh · Kimi Code · Hermes · ZCode · Gemini family (Gemini CLI / iFlow CLI / Qwen Code / Antigravity) · cert-MITM clients that never compress (CONNECT blind tunnels, #897) · unrecognized endpoints going direct (#1290) · OpenCode (launcher / native / pure proxy, `/acp` status & rules, legacy opencode-acp sessions #920).
-
-## FAQ
-
-**How do I check my cache hit rate?** Don't dig through logs — `/acp-cache`
-prints a **text summary report right in the client**, headed by a clickable
-**Web UI link**: open it for the web version of the session page — the cache
-hit-rate **line chart** plus per-break **attribution**:
-
-![web session page: cache hit-rate chart + attribution](docs/cache-web-session.en.png)
-The report has four
-blocks that pin things down at a glance: **GRAND LEDGER** (totals + hit% with
-an explicit `HEALTHY` verdict; misses decomposed into new content /
-compress re-pay / upstream-ttl-or-client-rewrite) · **FOLD ECONOMICS** (per-fold
-economics: net tokens saved, paid-back verdicts) · **LINE ITEMS** (anomalies
-only: hit<85% or miss≥5000). Rule of thumb: **compression itself costs ≤2%** —
-a healthy session sits at **95–97%**. When you see less, the attribution tells
-you which of the usual suspects it was, in this order: ① upstream cache TTL
-expiry (shows up as stable-prefix misses — the top-spikes line names idle
-times), ② a model switch, ③ a bili bug (report it with the page attached),
-④ other/unknown. `/acp-cache [full]` lists every fold & line; same report over
-Since #1535 the report ends with a `MODEL SWITCHES` section: a mid-session
-model change invalidates the provider's prefix cache, so the whole stable
-prefix is re-billed on the next request — each switch's unexplained residual
-(its `ttl` bucket minus new content) is charged to the switch instead of
-masquerading as TTL expiry; per-event `from → to`, hit %, and attributed
-tokens are listed (`full` lists every event, the summary the last 8), and
-the web sessions table gains a matching model-switch column. Since #2131 the
-same machinery fingerprints the outbound credential (a 12-hex sha256 of the
-`authorization`/`x-api-key`-family headers — the raw key is never stored) and
-attributes a **key switch** — the relay behind a stable URL rotated to a
-different account — in a dedicated `KEY SWITCHES` section, a `key switch:`
-line in `CACHE INVALIDATION`, and a 🔑 badge in the web sessions column.
-HTTP: `GET /__bili/cache-report`; the raw per-request `[acp-usage]` lines still
-land in the log file for deep dives.
-
-**What does `/acp` show?** In clients with the native plugin (opencode, dsh),
-`/acp` renders the ACP status panel of the current conversation straight from
-the proxy (session, blocks, compressible ranges, usage); before the first model
-request it shows an idle notice instead. `/acp-cache [full]` prints the cache
-report above.
-
-**Can I query sessions and config over the web?** Yes — open
-[http://localhost:8787](http://localhost:8787): an overview dashboard, session
-list with per-session detail, live logs, a config editor, and an upstream
-connectivity test. Everything is also plain JSON for scripting
-(`/__bili/stats`, `/__bili/sessions`, `/__bili/config`, …).
-
-**When does compression happen?** It is model-driven: the injected context
-tools are called by the model as context grows, gentle growth nudges
-(~50K-token steps by design, adjustable via `compress.nudgeGrowthTokens`)
-prompt it along the way, and preflight fires as a hard backstop when the input
-alone exceeds the window (#470). Watch it live with `/acp` or the web UI.
-
-**Why does the first compaction wait until ~200k?** Compaction does not
-trigger on absolute window position but on growth intervals: by default the
-first soft compaction fires 50k tokens past the boot content
-(`compress.nudgeGrowthTokens`, flat and window-independent). With a boot around
-100k — or with the growth step set to ~100k — the first compaction may wait
-until ~200k. To make it fire earlier: 1) trim the system prompt, disable
-unneeded tools, prune skills; 2) lower `compress.nudgeGrowthTokens` to ~50k;
-3) enable lean mode. Worked example in
-[CONFIGURATION.md](CONFIGURATION.md#why-the-first-compaction-waits-until-200k).
-
-**Is bili transparent? How do I turn it off?** Unrecognized endpoints forward
-unchanged ([CLIENTS.md](CLIENTS.md)), and every mode reverses cleanly:
-`bili plugin remove <client>` for native installs, stop using the launcher
-command / env vars / `/bili/` prefix for the other two — traffic goes direct
-again immediately.
-
-**Where are logs and session data stored?** Log:
-`~/.local/state/billion-context/bili.log` (also mirrored to stderr); session
-state: `~/.local/share/billion-context/` (XDG-overridable; Windows AV exclusion
-#362, opt-in cleanup #1082) — full paths in [CONFIGURATION.md](CONFIGURATION.md).
-
-## Running the proxy
-
-### Flags
-
-```bash
-bili --port 9000              # change listen port
-bili --host 0.0.0.0           # listen on all interfaces (see host note below)
-bili --debug                 # verbose logging (also: set "debug": true in config)
-bili --passthrough           # forward without compression (smoke-test mode)
-bili --config ~/my-bili.json # use a different config file
-bili update                  # check & install a newer version now (bypasses throttle)
-bili doctor --fix            # converge drifted dsh profile ledgers (manifest spec / lockfile record / bundle copy) to the on-disk version (#3496)
-bili --no-auto-update        # disable self-update for this run
-bili --auto-restart-on-update   # self-restart when a new version is installed (default off)
-bili --bin /path/to/client   # launcher: spawn this exact client binary instead of auto-detecting (env BILI_CLIENT_BIN)
-```
-
-Flags override env vars and the config file. `bili --help` lists them all.
-
-### Remote agents (`--host`)
-
-By default the proxy binds `127.0.0.1` and only accepts loopback connections. To serve agents on other machines: `bili --host 0.0.0.0` (or your LAN IP); remote agents point their model `baseURL` at `http://<this-host>:<port>/bili/…`.
-
-- MITM-mode `CONNECT` then also accepts remote clients — for **whitelisted model hosts only**. Blind tunnels to arbitrary hosts stay loopback-only, so the proxy can never be used as an open relay.
-- `/bili/<absolute-url>` destination admission (#409): the proxy itself and link-local/metadata addresses are always denied; loopback/private destinations are allowed for local clients (self-hosted upstreams) and denied for remote clients unless listed in `BILI_TUNNEL_ALLOWED_HOSTS` (`host` or `host:port`, comma-separated). One exception (#1073): a **local** client relaying a management path (`/__bili/*`, `/__acp/*`) to a **loopback IP-literal** destination is forwarded unmarked; remote peers and hostname destinations keep the internal tunnel marker unconditionally, and management paths stay unreachable through the tunnel even via NAT hairpin. An absolute-form request addressed to the instance's own endpoint on a management path is served locally instead of tunneled (a forward-proxy-style health probe gets a real answer).
-- There is **no authentication**: only do this on a trusted LAN or behind a firewall. The `/__bili/` management endpoints remain loopback-only. A startup `[security]` warning reminds you of the above.
-
-### Debugging
-
-`bili --debug` (or env `ACP_DEBUG=1`, or `"debug": true` in config — flag > env > config) logs every `processTurn` (tag counts, token usage), the nudge decision (growth/usage/pendingT1/shouldInject), client headers, and SSE rewrites.
-
-### Log file
-
-All logs tee to `~/.local/state/billion-context/bili.log` by default (XDG state dir) and still print to stderr. Override with `"logFile"` in config or `ACP_LOG_FILE` (`off` disables the file). Auto-rotates at 10 MB (`bili.log.old`). Per-request cache-hit stats log as `[acp-usage] round N input=X cached=Y (cache hit Z%)` so you can measure prefix-cache health directly from the log.
-
-### Connection lifecycle tuning (#1982)
-
-Client-facing connections close gracefully after the final response: when the proxy initiates the close (`Connection: close`), it waits up to `BILI_POST_RESPONSE_LINGER_MS` (default `5000`) for the client's close signal before releasing the socket, so pooled clients see a clean EOF instead of a possible RST from racing bytes. Related knobs: `BILI_KEEP_ALIVE_TIMEOUT_MS` (idle-reap budget, default `5000`) and `BILI_CLIENT_ERROR_BACKSTOP_MS` (terminal backstop for the error-drain path, default `30000`) — full semantics in [CONFIGURATION.md](CONFIGURATION.md#environment-variables).
-
-### Self-update
-
-The proxy checks npm on startup and every 3 minutes; a newer version is installed in place and a notice is logged — **restart `bili` to pick it up**, unless you enable opt-in self-restart (`--auto-restart-on-update` flag, env `ACP_AUTO_RESTART_ON_UPDATE=1`, or `"autoRestartOnUpdate": true` in config — default OFF): with zero in-flight requests it verifies the new install, stops accepting connections, drains, spawns a replacement on the same port, and exits once it accepts connections (clients reconnect automatically; session state survives on disk). Safety gates: zero in-flight through the drain window, an install sanity check before re-exec, and a 10-minute cooldown marker so a flapping version can never loop-restart; any failure resumes the original listener and falls back to the plain reminder.
-
-While the running process is behind the on-disk install ("stale"), the web UI shows a banner (running vs installed version, auto-restart state) and `GET /__bili/status` returns `{version, diskVersion, stale, autoRestartOnUpdate, advisory, inFlight}` for scripting (`advisory` is the active critical-defect entry or `null`, see below). Disable permanently via `"autoUpdate": false` in config or `ACP_AUTO_UPDATE=0`.
-
-In **plugin mode** (`bili opencode` / `bili pi` / `bili dsh` — the proxy runs embedded in a long-lived host), "restart bili" means restarting the **host**: the embedded process cannot exit on its own, so a host left open keeps serving whatever code it started with, silently missing every fix auto-update reports as installed (#1603). Enable `--auto-restart-on-update` to have it self-restart at a safe point, or run `/acp` (OpenCode hosts today — pi/dsh coverage tracked in #2084) — the status panel appends a one-line staleness warning (running vs installed version) whenever the on-disk install is ahead of the live process. Auto-update only ever replaces disk files and (optionally) the proxy process; **injected code inside the host process only takes effect after the host itself restarts** — so if the injection breaks at runtime mid-session (a disposed agent scope, a disabled plugin), model traffic goes direct and uncompressed until then. Since #3581 this state is visible instead of silent: the web UI shows a "takeover broken" banner (agent + refusal count) whenever a plugin reports its attribution gate degraded while no session is live, and `GET /__bili/status` / `/__bili/overview` expose the per-agent `attribution` state (`ok`/`none`/`threw`, refusal count, first-refusal timestamp).
-
-**Update visibility is silent by default since v0.1.183 (#1977):** routine/recommended releases no longer render an update line on the `/acp` panel footer or in `acp_status` — only a `critical`-tier release surfaces there (`CRITICAL UPDATE READY/AVAILABLE`). The standing ways to check an installed-but-not-restarted release are the stale cues above: web UI banner, the `/acp` one-line warning, and `GET /__bili/status`. Deliberately no always-on nag; the advisory channel (#1481) remains the only auto-visible critical path.
-
-When an install keeps failing (unwritable or host-managed dir, network error, …), auto-update no longer re-downloads and retries on every 3-minute cycle forever. After three consecutive failures it backs off exponentially (5 min → 10 → 20 …, capped at 6 h), logs a one-time actionable hint (fix permissions / npm prefix, reinstall user-level, or disable via `"autoUpdate": false` / `ACP_AUTO_UPDATE=0`), and logs nothing further about the failure while cooling down (no download, no retry line); it resumes as soon as the failure clears or a different version is targeted (#1603).
-
-The same bounded retry now covers the **owner-managed lanes** the global self-update drives instead of writing the copy itself — the dsh desktop in-place copy, the dsh profile bundles, and pi's npm copy (#2192). Each lane keeps its own failure streak keyed by lane + target version, so a persistently broken desktop layout no longer re-downloads the full tarball every cycle (up to ~480 downloads/day per affected machine before the fix); three strikes arms the same exponential cooldown, and the one-time hint names the failing lane and its manual fix (`dsh plugin --profile <name> add …`, `pi update --extension …`, or recreate the desktop profile). Host-managed instances additionally check on their own slower cadence — 30 minutes plus up to 15 minutes of jitter, tracked under a separate throttle marker — instead of consuming the global 3-minute budget. Failure streaks are shared across every bili process on the machine through a small state file in the cache dir (`.install-backoff.json`), so several running instances don't each burn their own retry budget; a clean `bili plugin update` disarms the dsh profile lane immediately. The file is written atomically (tmp+rename) and every writer merges with what is already on disk, so concurrent instances cooperate instead of overwriting each other's streaks; long-lived processes re-read it when it changes, so a manual disarm by one copy is visible to the others on their next check. It is fail-safe in the retry direction — a corrupt file or jumped clock is dropped, never allowed to silence a lane for long. `bili plugin update` clears the dsh-profile lane's key; a repaired desktop lane clears its own key on its next successful in-place refresh.
-
-### Critical-defect advisories (forced updates)
-
-Independent of auto-update (#1481): even with `autoUpdate` off, the proxy polls a small companion npm package (`billion-context-advisories`, published by CI from this repo's [`advisories/`](advisories/) directory) on the same 3-minute cadence. Each advisory names a semver range of broken versions (`affected`), the exact version to install (`target` — which may be *older* than the current one, i.e. a rollback), and a user-facing `reason`. When the local version falls inside `affected`, bili force-installs `target` through the self-updater's full safety chain (cross-process lock, backup + verify + rollback; source checkouts and host-managed installs are refused with manual instructions instead) and warns prominently: a one-time `[advisory] ⚠️ …` log line per process per advisory id, a banner on the web UI showing the reason and the exact manual upgrade command, and the active entry under `advisory` in `/__bili/status`. The check is fail-open by design: an unreachable or malformed advisory source only produces a warning — model traffic is never blocked by it. Disable via config (`"advisoryCheck": false`) or env (`BILI_ADVISORY_CHECK=0`); point at a custom document with `"advisoryUrl"` / `BILI_ADVISORY_URL`.
-
-## Configuration
-
-The full configuration reference — config file location, top-level keys,
-providers, compression tuning, environment variables — lives in
-**[CONFIGURATION.md](CONFIGURATION.md)**.
-
-### Config file
-
-One JSON document at `~/.config/billion-context/billion-context.json`
-(`$XDG_CONFIG_HOME/billion-context/`; override the path with `BILI_CONFIG_FILE`).
-Precedence when several sources set the same knob: **CLI flag (where one exists) > env var > config file > built-in default** — every env var keeps working as the override tier.
-
-What's inside (details in CONFIGURATION.md):
-
-- `providers` — per-provider routing table: upstream override, model context windows, per-provider/model compress tuning, wire-protocol declaration, compaction opt-in.
-- `compress` — three-level compression tuning (global → provider → model): thresholds, nudge cadence, preservation rules, prompts, tiers.
-- Server-level blocks — process-wide behavior, including the #2030 additions: `network` (timeouts / retry / keep-alive / preflight cadence), `persist` (session persistence format + tail), `sessions` (cap + GC policy), `update` (registry mirror + check interval), `diagnostics` (dumps, render-tag mode, injection switches), `fakeCompletion`, plus scalars `codexCompact` / `ccrRetrievalTtlMs` / `decompressTmpCap` and extensions `mitm.handshakeTimeoutMs`, `compat.noCacheControl`, `compat.keepResponseId`.
-
-Minimal example:
-
-```json
-{
-  "network": { "upstreamTimeoutMs": 900000 },
-  "persist": { "zstd": true },
-  "sessions": { "gc": { "enabled": true, "maxAgeDays": 14 } }
-}
-```
-
-Knobs people look for first:
-
-- **Upstream proxy (firewall/GFW)** — routing the proxy's own outbound traffic through v2rayA/clash: full resolution order, empty-string = explicit direct, SOCKS5 rejection, both egress paths, and the `mitm://` vs `https://` key schemes live in [CONFIGURATION.md](CONFIGURATION.md) (Server Settings → `proxy`; Providers → key schemes).
-- **Wire-compat role rewrite (`compat.roles`)** — an upstream that rejects the `developer` role? Covered by [CONFIGURATION.md](CONFIGURATION.md) (Server Settings → `compat`) — including the learn-on-failure auto-fix that needs no configuration at all.
-- **Signed upstreams (body-covering signatures)** — a gateway whose requests carry a body-covering signature (CodeArts APIG's `SDK-HMAC-SHA256`, or gateway-invented headers like `x-ofm-signature`): the built-in scheme re-signs transparently on dsh; every other detected scheme is ALWAYS refused locally — signed requests are either re-signed+compressed or refused, never passed through unsigned — and bili keeps reminding at startup and in the web UI until it ships the scheme's re-signer (#1884/#2090). Detection rules, per-scheme overrides, and `BILI_RESIGN` / `BILI_RESIGN_PASSTHROUGH` / `BILI_CODEARTS_REF` live in [CONFIGURATION.md](CONFIGURATION.md) (Server Settings → `resign`).
-
-### Pi built-in subagents
-
-Using `bili pi` or the native pi plugin (`bili plugin install pi`) includes built-in subagent support, enabled by default: `acp_delegate`, `acp_delegate_wait`, and `acp_delegate_cancel`. This additional tool surface is specific to pi.
-
-**Keep only one subagent implementation enabled.** If you use the built-in support, remove or disable other pi subagent plugins (for example, `pi-subagents` or a separately installed `billion-context-pi-subagents`) in both user and project settings to avoid overlapping tools, prompts, or behavior. If you prefer another subagent plugin, disable the built-in support instead. A project-scope `pi-subagents` install makes the built-in delegate stand down by default, but a user-scope-only install does not; do not rely on that guard for every installation.
-
-To disable the built-in subagents while keeping context compression, merge this into `~/.config/billion-context/billion-context.json` (or the file selected by `BILI_CONFIG_FILE`), preserving your other settings:
-
-```json
-{
-  "pi": {
-    "subagents": false
-  }
-}
-```
-
-Restart pi and start a new session for the change to take effect. This disables the three delegate tools, their system-prompt section, and the fleet keyboard shortcut; context compression remains enabled. It does not disable independently installed subagent plugins. More options: [subagent configuration](CONFIGURATION.md#pi).
-
-## How sessions work
-
-The proxy keys compression state on **the conversation value the client itself provides, verbatim** (`src/session-id.ts`) — no hashing, no protocol/upstream/API-key dimensions (those mutate mid-conversation and orphaned state exactly when users kept talking, #280/#286). The id stays inside the proxy (state store, persistence, UI label); it is never sent upstream.
-
-Where the value comes from, first hit wins: the plugin's
-`x-bili-plugin-conversation` (honored only alongside the `x-bili-plugin`
-marker header), then per-client headers (`x-claude-code-session-id`,
-`x-grok-session-id`/`x-grok-conv-id`, `x-mavis-session-id`,
-`x-opencode-session-id`), then generic
-headers (`x-session-affinity`, `x-acp-session`, `x-session-id`,
-`x-opencode-session`, `session-id`/`session_id`), then body fields:
-`session_id` / `metadata.session_id` on the Responses wire, and
-`prompt_cache_key` promoted over the content-fingerprint fallback on the
-Responses/OpenAI/Anthropic wires.
-
-| Client | Sends conversation id? | Source |
+| 上游项目 | 作者 | 角色 |
 |---|---|---|
-| **Codex** | ✅ yes | `body.session_id` / turn-metadata thread id |
-| **OpenCode** | ✅ yes | `x-opencode-session-id` header (`ses_…`, the request's own session id; 2.x sends the *parent's* cache-routing affinity in `x-session-affinity`/`X-Session-Id`/`x-opencode-session` alongside it, #2779 — 1.x sent its own id in those instead) |
-| **Claude Code** | ✅ yes | `x-claude-code-session-id` header |
-| **omp** (via plugin) | ✅ yes | `prompt_cache_key` promoted over any fingerprint (#268) |
-| **pi** (bare) | ❌ no | nothing → anonymous prefix affinity below |
+| **[billion-context-pi](https://github.com/ranxianglei/billion-context-pi)** | [ranxianglei](https://github.com/ranxianglei) | 本项目移植的 Pi 编码代理适配器；适配器设计、工具语义与本项目默认配置的来源 |
+| **[acp-kernel](https://github.com/ranxianglei/acp-kernel)** | [ranxianglei](https://github.com/ranxianglei) | 框架无关的上下文压缩引擎——**原样复用**（refs、blocks、tiers、nudge 决策、search、status） |
+| **[opencode-acp](https://github.com/ranxianglei/opencode-acp)** | [ranxianglei](https://github.com/ranxianglei) | ACP（"模型决定何时压缩、压缩什么"）设计的源头 |
+| **[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)** | DeepSeek AI | 本项目所扩展的宿主平台（compaction 能力接缝、agent preset、持久化会话日志） |
 
-**omp caveat (#2583):** on recent OMP builds, default Anthropic (`anthropic-messages`) requests leave the host through OMP's Cowork transport over node:https directly — they never reach bili's fetch layer, so the `prompt_cache_key` stamp is *withheld* there (stamping would leak the field into Anthropic's strict schema → HTTP 400). Those requests run direct: uncompressed and anonymous to the proxy; all other omp traffic keeps its stamped identity. Details: [TECHNICAL-NOTES.md](TECHNICAL-NOTES.md).
+本项目原样复用 `acp-kernel` 的压缩内核与 `billion-context-pi` 的默认行为；DSH 适配层（会话事件投影、持久化表面事务、模型工具、nudge、配置）为本仓库原创。上游版权与许可归其各自作者所有；本项目的许可条款见 [LICENSE](LICENSE)。
 
-**Header-less clients (pi-like): anonymous prefix affinity.** With no conversation signal at all, the proxy resolves the session from the replayed history itself (`src/prefix-affinity.ts`, #309): a request reattaches to a stored session only when its history reproduces that session's message chain byte-exactly from position 0; otherwise it gets its own deterministic `pfa-…` session. Consequences (#1262): a **resumed** conversation reattaches to its own session (even after a proxy restart, #499); a **new task with an identical opener does NOT inherit** another conversation's blocks — it mints a fresh, fully separate session; a request with no usable signal at all gets an explicit 400 instead of silently colliding.
+## 配置
 
-Design record and threat model: [SESSION-IDENTITY.md](SESSION-IDENTITY.md). The
-message-granularity sibling (why identity is content-derived, not an
-assigned id) is [MESSAGE-IDENTITY.md](MESSAGE-IDENTITY.md).
+| 键 | 默认值 | 含义 |
+|---|---|---|
+| `modelContextLimit` | 自动探测（回退 `128000`） | 用于内核压力决策的上下文窗口；显式配置时优先且跳过探测。省略时优先读宿主会话投影 `contextPressure.contextWindow`（按**当前真实路由**披露的新窗口，切模型会话自动跟随，无需重启），无投影时再从模型 API 探测；显式配置同样跳过输出预留扣减（分母完全由操作者定义）（运行时热调：`/acp-prune config`） |
+| `autoModelContextLimit` | `true` | 从模型 API 自动探测真实窗口（`agent.ctx.llm.resolveModelInfo`）；探测失败回退默认值，`/acp-prune` 命令展示窗口来源（模型工具 `acp_status` 不含窗口信息）。省略时窗口先读宿主投影（`windowFor` → `projectedContextWindow`，`src/window.ts`）再走探测；投影与探测在 `autoModelContextLimit: false` 时均跳过。探测失败会在宿主日志与 `/acp-prune` 面板提示（`restart to re-probe`）——失败结果同样被缓存，修复网关后需重启或显式设置 `modelContextLimit` 才会重新探测。探测成功后还会**扣减 adapter 的每请求输出上限**（`defaultMaxTokens`，窗口末端每请求保证的输出预留）：所有下游压力决策（nudge 档位、truncate、growth）以「可持续输入预算」（窗口 − 输出预留）为分母——96K 窗口 + 16K 上限实际最多承载 80K 输入，原裸窗口分母会把用量低估 cap/window（此处 ≈17%；小上下文窗口模型比例更高）；上限未披露、显式配置或探测失败时保持裸窗口行为，`/acp-prune status` 展示扣减明细（raw − reservation）。经 `/acp-prune config` 改动 `modelContextLimit`/`autoModelContextLimit` 会清空窗口缓存，改完即重探 |
+| `nudgeMinContextLimitPct` | 内核默认 `0.45` | Nudge 窗口下界（用量占比）——仅作配置校验，增长路径的触发没有百分比下限——与 billion-context-pi 相同的默认值（运行时热调：`/acp-prune config`） |
+| `nudgeMaxContextLimitPct` | engine 默认 `0.70`（内核/pi 默认 `0.75`） | 过限线：超过此值则无论增长与否都触发 nudge——刻意低于宿主 compaction-basic 的 80% 自动压缩线，保证强制 nudge 先触发；显式配置优先（`coreOverrides.nudge` 同名键优先级更高，见下）（运行时热调：`/acp-prune config`） |
+| `nudgeEmergencyThresholdPct` | engine 默认 `0.85`（内核/pi 默认 `0.95`） | 紧急 nudge（绕过每轮去重，但每个 user turn 最多注入 3 次——issue #108）——从 `0.95` 下调：95% 时模型已无操作空间且会被 80% 自动压缩线遮蔽；显式配置优先（`coreOverrides.nudge` 同名键优先级更高，见下）（运行时热调：`/acp-prune config`） |
+| `preset` | — | （可选）一句话选择 nudge 的激进程度：`preserve` / `relaxed` / `balanced` / `efficient` / `aggressive`（详见下文「预设」）。只填充你**未显式设置**的三个 nudge 阈值，优先级 显式值 > `preset` > engine 默认；未知名称在构造期报错，与显式阈值合并后若窗口反向（`min` / `max` / `emergency` 顺序错误）同样在构造期报错。不影响其他键（`modelContextLimit` / `autoNudge` / `prompts` / `coreOverrides`） （组合行专用：`preset` 尚未接入 `/acp-prune config`，见 issue #75 后续） |
+| `coreOverrides` | — | 任何其他 acp-kernel `Config` 覆盖（billion-context-pi 的 `coreOverrides` 逃生口）。合并顺序：内核默认 → 顶层 pct 配置 → `coreOverrides.nudge` 最后落地——同名键以它为准（只读：组合行专用，不经 settings 层） |
+| `autoTools` | `true` | 在 `ctx.tools` 注册四个模型工具 |
+| `autoCommand` | `true` | 在 `ctx.commands` 注册 `/acp-prune` 命令 |
+| `autoNudge` | `true` | 当内核建议时向 `agent/pre-step` 注入 nudge（运行时热调：`/acp-prune config`） |
+| `maxOverflowRetries` | `1` | 宿主确认的上下文超窗（`CONTEXT_WINDOW_EXCEEDED`）自动抢救预算：超窗时引擎挑一段**最大且合规**的范围做一次紧急压缩（摘要是引擎自己写的标记，不调模型——请求刚被拒，本就没有模型回合可写摘要；原文都留在日志里，`search_context`/`decompress` 找得回来），然后应答宿主的 `agent/request-error` 让该请求重试。预算按请求计数，模型有进展（落一条 assistant 消息）或 agent 回到 idle 即重置；`0` 关闭这个自动动作（错误原样抛给用户）。这是 ACP 唯一的自动压缩动作——压力侧始终只 nudge、由模型决定（组合行专用，不进 settings 层；原理与取舍见 [docs/overflow-recovery-design.md](docs/overflow-recovery-design.md)） |
+| `settingsEnabled` | `true`（未配置即启用） | （可选）整体关闭运行时设置集成（组合行专用，不进 settings 层——开关不能关掉自己；关闭后组合行 `config:` 仍是唯一生效通道） |
+| `prompts` | — | （可选）自定义提示词文案：nudge / 范围表 / system prompt / 工具描述按槽位覆盖（模板 + 命名占位符，构造期校验；见上文「自定义提示词文案」与 [docs/configurable-prompts-design.md](docs/configurable-prompts-design.md)） |
 
-For upstream sticky-routing, the proxy forwards only identity values the
-client already supplied (e.g. a body `session_id` is forwarded upstream as
-`x-session-id`); it never synthesizes one itself.
+## 预设（preset）
 
-**Recommendation:** explicit-id clients are safe to run concurrently. For header-less multi-agent use, prefer the client plugin (stamps a stable id per conversation) or pass an explicit `x-acp-session` header — otherwise prefix affinity still keeps distinct tasks apart (a diverged fork costs one raw resend plus a compression-ladder restart).
+不想逐个调三个百分比时，用一个词选择 nudge 的激进程度——从「尽量保留上下文」到「尽早频繁压缩」共五档：
 
-### Derived (child) sessions inherit the parent's compressed context (#1333, #1362)
+| `preset` | min | max | emergency | 定位 |
+|---|---|---|---|---|
+| `preserve` | 0.55 | 0.78 | 0.93 | 尽量保留上下文，接近上限才提醒压缩 |
+| `relaxed` | 0.50 | 0.75 | 0.90 | 轻度压缩，比 preserve 稍早提醒 |
+| `balanced` | 0.45 | 0.70 | 0.85 | 默认平衡——与插件开箱阈值一致（选它等于不改） |
+| `efficient` | 0.40 | 0.60 | 0.78 | 更勤快地修剪，偏向低 token 占用而非保留完整历史 |
+| `aggressive` | 0.30 | 0.50 | 0.70 | 精简上下文，更早更频繁地压缩 |
 
-A child session (subagent/fork starting from an empty history) reports its lineage at birth — its identity registration carries `parentConversationId` and the proxy records a read-only `derivedFrom` link — so `decompress` / `search_context` fall back along the parent chain for content the child never saw itself (cycle-guarded, depth cap 8). Nothing is copied into the child, the parent is never modified; if the parent is unknown the child simply starts fresh. Per-lane parent signals (pi/omp `parentSession` header, OpenCode V1/V2 `parentID`): [SESSION-IDENTITY.md](SESSION-IDENTITY.md#derived-child-sessions-lineage-at-birth-1333-1362). claude/codex/dsh need nothing here: they share one session id across subagents or have no child-session concept at all.
+- **只填未设的阈值**：`preset` 仅填充你没有显式设置的 `nudge*ContextLimitPct`；同时写了 `preset` 和某个阈值时，该阈值以你的显式值为准（优先级 显式 > preset > 默认）。
+- **preset 同样落到运行时设置层**：组合 preset 填出的三个阈值注册为 settings 层的 `base` 层——`/acp-prune config list` 把它们归因为 `source: base`，`/acp-prune config reset <key>` 退回的是 **preset 值**而非引擎默认（运行时 reset 恢复的是组合的选择）；未配 preset 时行为完全不变。
+- **不碰其他旋钮**：`modelContextLimit`、`autoNudge`、`prompts`、`coreOverrides` 完全不受影响；`coreOverrides.nudge` 仍最后落地、同名键最高优先。
+- **查看当前档位**：`/acp-prune status` 会打印生效的 `preset` 及其**真实生效的**三个阈值——这一行镜像 `kernelConfigFor` 的合并顺序，所以你在其上做的显式覆盖、以及 `coreOverrides.nudge` 里的同名键都会如实显示。
+- **拼错即报错**：未知名称在引擎构造期直接抛错并列出合法值（与自定义提示词模板同一约定），不会静默回退默认。注意 bundle 行本身不带 `config`，`preset` 只能由你自己的同 id `compaction-acp` 行提供；该行构造失败即挂载失败，profile 会在你修好配置前一直起不来（fail-fast 的既定行为）。
+- **运行时热切换**：预设目前走组合配置（安装 / `cordis.patch.yml`）；待 #75 的 settings.yaml 热加载落地后，可在 `/acp-prune config` 里改。本 PR 先让它在组合层可用。
+- **反向窗口直接报错**：与显式阈值合并后若出现 `min > max`、`max > emergency` 或 `min > emergency`（例如 `preset: 'preserve'` 配 `nudgeMaxContextLimitPct: 0.5`），引擎在构造期抛错并列出三个值。内核对这种配置只打警告、不会拒绝，所以这道校验由引擎在 `resolveAcpConfig` 里补上。
+- **与宿主 80% 线赛跑的是 `max`**：反复触发的过限提醒（`OVER-LIMIT`）由 `max` 决定；`preserve` / `relaxed` 的 emergency（0.93 / 0.90）高于宿主 compaction-basic 的 80% 线，只是超过它之后的标签升级，宿主先压缩时不会到达。
+- **`min` 是首见提醒的地板**：内核（0.0.101）在运行时只读它一处——`firstSightMassReady`（从未提醒过、还没有基线、用量 ≥ `min` 且待压内容达到增长下限时立刻提醒一次，理由串带 `[first-sight mass]`）。T2/T3 的「块数达标」触发在 0.0.101 里**不再**要求用量 ≥ `min`（0.0.63 的 `tierCountUsageFloor` 已移除），常规 T1 增长提醒也从不看 `min`（由 `max` 与 `growthRatio` 决定），所以五档之间的主要差异来自 `max` 与 `emergency`，更低的 `min` 只让首见提醒来得更早。另外，T2/T3 的**块数触发阈值**在 0.0.101 里默认从 5/10 个块改为 **1000/2000** 个块（`tiers.tier2Trigger` / `tier3Trigger`，引擎不覆写 `tiers`），所以实践中 T2/T3 提醒由质量路径触发，块数路径基本不会命中。
+- **两个暂未纳入的旋钮**：原始需求里的 `growthRatio`（内核已有 `nudge.growthRatio`，可经 `coreOverrides` 调）和 `protectedLastMessages`（≈ 内核 `preserveRecentMessages`）目前不是本项目的一等旋钮；是否采纳为命名键 / UI 项由维护者决定，未擅自并入预设。
 
-### Windows: exclude the sessions dir from antivirus (#362)
+## 已修复的问题
 
-The proxy rewrites each session's state file every turn of a long session; on Windows, real-time AV (Defender), the search indexer, or a sync tool (OneDrive) can lock the sessions dir mid-write, so persists fail with `EPERM` until the lock clears. Fix at the root: add `%USERPROFILE%\.local\share\billion-context\` to your antivirus exclusions (Defender steps included) and keep sync tools off that path — [CONFIGURATION.md](CONFIGURATION.md#windows-exclude-the-sessions-dir-from-antivirus-362).
+> 下面这条是本项目自己撞出来的真实故障。已在内核 **acp-kernel 0.0.101** 修复，本仓 **v0.2.27** 起 pin 到该版本；老版本（≤ v0.2.26）仍会遇到。
 
-### Session file cleanup (#1082)
+### 长会话撞上内核引用上限：`ref capacity exhausted: cannot allocate beyond m99999`（已修复）
 
-Short-lived sessions leave small state files behind that are never resumed. Cleanup is **opt-in** (`BILI_SESSION_GC=1`; off by default — session files are user data, no silent deletion policy): when enabled, bili sweeps the sessions dir at boot and hourly and deletes a file only when BOTH hold — older than `BILI_SESSION_GC_MAX_AGE_DAYS` (default 7 days) AND never compressed with its newest request body ≤ `BILI_SESSION_GC_MAX_TOKENS` tokens (default 1M) — so deletion loses nothing but bytes. CCR content stores follow their session file's lifecycle; compressed sessions are never deleted; every deletion is audit-logged. Full policy: [CONFIGURATION.md](CONFIGURATION.md#environment-variables).
+超长会话（约数万条消息级事件）跑完后，整轮可能直接失败，界面显示：
 
-## Status
+```text
+本轮运行失败
+ref capacity exhausted: cannot allocate beyond m99999
+```
 
-Early. Protocol handling and compression work against mock tests (500+ passing). Real-model integration testing is the next milestone. Expect rough edges.
+这是上游 [acp-kernel](https://github.com/ranxianglei/acp-kernel) 的 5 位引用编号空间（`m00001`–`m99999`）被**累计**见过的消息数耗尽——引用编号在会话内只增不复用（#176 的槽复用因会让摘要里的旧 tag 静默指向另一条消息而被 #191 回退，#191 确立该不变量），与当前上下文大小无关。当时确认内核 0.0.29、本仓当时 pin 的 0.0.63、以及当时的 npm 最新版 0.0.98 全部同样命中（`refs.ts` 的 `MAX_INDEX = 99999`）。**已在 acp-kernel 0.0.101 修复**：两版 `dist/index.js` 的常量实测为 `99999` → `9999999`，本仓 v0.2.27 起 pin 到该版本——**升级到 v0.2.27 及以上即不再撞限，旧会话无需重建**。
 
-Client-side plugins for pi / omp / opencode ship inside `billion-context` (`dist/agent/*.js`) for the cooperative-proxy path. See the **"Which do I need?"** section above for how `billion-context`, the standalone `billion-context-pi`, and `opencode-acp` relate.
+**压缩救不回，重启也救不回**：本插件每轮把**整条日志**（含已被摘要遮蔽的部分）交给内核（T2/T3 蒸馏需要完整日志而不只是可见面——见 src/messages.ts:315 `allLogMessages` 的注释），而内核流水线的第一个节点就是 `assign-refs`，先给日志里的所有消息编号、然后才谈任何压缩决策。所以：
 
-## Attribution requirement (one term on top of MIT)
+- **压缩救不回**：报错在任何压缩决策之前抛出，`compress` 工具自己也走同一条路径；
+- **重启 dsh 也救不回**：内核状态是纯内存态、不落盘，重启后第一轮就要为整条日志从头重新编号——日志已超过约 10 万条消息级事件时当场再次撞限。
 
-This project is MIT-licensed **plus one additional term**: any product or service (commercial or open source) whose users can see or interact with it and which uses this software must attribute it — stating that it uses billion-context with a link back to this repository — on its home page, documentation, or About/Credits page. Pure server-side/embedded use satisfies this via shipped documentation. See the **Additional Term** at the end of [LICENSE](LICENSE).
+也就是说，在 0.0.101 之前的内核上，对本插件而言**「日志超过约 10 万条消息级事件 = 该会话在 ACP 下永久不可用」是硬墙**。正解是内核把引用位宽从 5 位放宽到 7 位：已在 [acp-kernel#483](https://github.com/ranxianglei/acp-kernel/issues/483) 提请并在 **0.0.101** 发布（追踪见 [docs/upstream-tracker.md](docs/upstream-tracker.md)，issue [#187](https://github.com/Tyan66666/billion-context/issues/187) 已 resolved）。
 
-If you build on this project, we'd love to hear about it: open an issue (no obligation) so we can track where it's used.
+**处置**：
+
+1. **升级到 v0.2.27 及以上**（pin 含 acp-kernel 0.0.101）——撞限不再发生，**旧会话继续可用**，不必新建会话。
+2. 暂时无法升级时：**换回规则式压缩**——profile 里禁用 `compaction-acp`、启用宿主自带的 `compaction-basic`，绕开这条代码路径（会话本身仍可继续）；或 **换新会话**——把需要的上下文手动带过去，新会话的引用从零开始计数，等它自己的日志接近约 10 万条时才会再撞这堵墙。
+
+## 开发
+
+```bash
+npm install
+npm run typecheck   # 严格 TS
+npm test            # node --import tsx --test tests/*.test.ts
+npm run build       # tsup 打包（内联 acp-kernel）+ .d.ts
+npm run test:e2e   # 端到端宿主回归：真实 agent 循环 + 脚本化假 LLM（见下文）
+```
+
+端到端回归（`scripts/e2e/`）在进程内组装真实 DSH 宿主（cordis + agent-loop + DeepSeek 适配器），指向脚本化假 LLM 服务，挂载本引擎作为压缩后端，然后断言持久化事件日志：compaction 起止配对、durable replace 节点、严格 tool-call/result 配对、nudge 注入节奏；以及假 LLM **实际收到的请求体**（wire 级 prompt-cache 字节稳定性：envelope、`tools` 数组、leading message，无 compaction 场景全程 append-only）。自 issue #183 起，每个场景都在**真实 JSONL 持久化 writer**（`JsonlSessionPersistence`，会话落盘到每次运行全新的临时根目录）上跑：runner 用全新只读句柄解码每个场景的落盘文件——lossless round-trip、replay 后 surface 与 live 一致、零退役 source 形状——只在 durable 编码阶段暴露的准入级缺陷无法再全绿穿过套件（#163/#181 类盲区）。背景与取舍见 [docs/e2e-harness-design.md](docs/e2e-harness-design.md)（issue #120/#183）。
+
+另有一层单元级 durable 行准入网（`tests/durable-admission.test.ts`，issue #183）：把引擎写出的每种持久化行形状过一遍真实发布版 JSONL 存储的完整往返（append→读回→逐行比对 + 负向对照），钉住「我们写的每一行都能被声明 peer 区间内的 writer 编码并读回」。
+
+`dist/index.js` 自包含，仅外链 `@deepseek-ai/*` 接缝包（由宿主部署提供）。
+
+## 架构
+
+```
+src/
+├── index.ts        # AcpCompactionEngine（CompactionEngine 后端）+ 接线
+├── messages.ts     # M1: 会话事件 ↔ acp-kernel CoreMessage 投影
+├── state.ts        # M2: 每会话内核状态
+├── region.ts       # M5: 持久化区域事务 + 日志重建块账本
+├── block-ledger.ts # M5 支持：tier/lineage 字段编码进 compaction/summary 的 rawOutput（绝不作顶层成员，issue #141）
+├── tools.ts        # M3: compress / decompress / search_context / acp_status
+├── nudge.ts        # M4: 内核压力决策 → 注入的建议式 nudge
+├── system-prompt.ts# M4: 一次性 ACP 指引段（让 nudge 保持简短）
+├── config.ts       # 内核配置组装（阈值 + coreOverrides）
+├── window.ts       # 自动上下文窗口探测（宿主投影优先，LLM 运行时探测回退，兜底 128000）+ 输出预留探测（defaultMaxTokens，windowFor 内扣除）
+└── commands.ts     # M4: /acp-prune 斜杠命令
+```
 
 ## License
 

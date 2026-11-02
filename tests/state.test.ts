@@ -1,0 +1,174 @@
+/**
+ * M2 — kernel-state rehydration tests: a restarted engine must rebuild the
+ * acp-kernel CompressionState from the durable log (tier, kernel block ids,
+ * and — the BLOCKER fix — the ORIGINAL message coverage of distilled blocks),
+ * and rehydrated blocks must stay anchorable for further distillation.
+ */
+
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { Context } from '@deepseek-ai/cordis'
+import { createCore, type CompressionCore } from 'acp-kernel'
+import { Session } from '@deepseek-ai/dsh-session'
+import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import { AcpStateStore } from '../src/state.ts'
+import { makeTools, type ToolEnvironment } from '../src/tools.ts'
+import { rebuildBlockLedger } from '../src/region.ts'
+import { appendAssistant, appendTurn, appendUser, buildTextSession, longText } from './helpers.ts'
+
+function makeEnv(limit = 128000): ToolEnvironment {
+  return {
+    kernel: createCore({}) as CompressionCore,
+    store: new AcpStateStore(),
+    modelContextLimit: limit,
+    userVerbatimKeep: 1,
+  }
+}
+
+function fakeExec(session: import('@deepseek-ai/dsh-session').Session, overrides: Partial<ToolRunContext> = {}): ToolRunContext {
+  const agent = {
+    id: session.id,
+    session,
+    options: { provider: 'test-provider', model: 'test-model' },
+    ctx: new Context(),
+  } as unknown as Agent
+  return {
+    callId: 'call-acp',
+    name: 'compress',
+    arguments: {},
+    signal: new AbortController().signal,
+    agent,
+    ...overrides,
+  } as unknown as ToolRunContext
+}
+
+function toolOf(env: ToolEnvironment, name: string) {
+  const tool = makeTools(env).find((definition) => definition.name === name)
+  assert.ok(tool, `tool ${name} registered`)
+  return tool
+}
+
+const TIER_SUMMARY = 'Tiered distillation test summary covering the authentication subsystem, the refresh-token lifecycle, the login flow, the rate-limiting strategy, the bcrypt cost factor, the session revocation rules, the deployment pipeline, the kubernetes canary rollout, and the health-check probe configuration with all critical file paths and decisions preserved verbatim for later recovery. '.repeat(50)
+
+test('M2: kernel blocks rehydrate from the log with tier and original coverage', async () => {
+  const env = makeEnv()
+  const session = buildTextSession(12)
+  const compress = toolOf(env, 'compress')
+  await compress.execute({ content: [{ startSeq: 1, endSeq: 5, summary: TIER_SUMMARY }] } as never, fakeExec(session))
+  const summarySeq = rebuildBlockLedger(session.snapshotEvents())[0]!.summarySeq!
+  await compress.execute({ content: [{ startSeq: summarySeq, endSeq: summarySeq, summary: TIER_SUMMARY }] } as never, fakeExec(session))
+
+  // A FRESH store (restarted engine) rebuilds the kernel state from the log.
+  const fresh = new AcpStateStore()
+  const state = fresh.stateFor(session)
+  assert.equal(state.blocks.length, 2)
+  const b1 = state.blocks.find((block) => block.blockId === 'b1')
+  const b2 = state.blocks.find((block) => block.blockId === 'b2')
+  assert.ok(b1 !== undefined && b2 !== undefined, 'synthesised/recorded kernel block ids survive')
+  assert.equal(b1.tier, 1)
+  assert.equal(b2.tier, 2)
+  assert.ok(b2.effectiveMessageIds.includes('1'), 'rehydrated tier-2 coverage is the parents ORIGINALS, not the checkpoint node')
+  assert.ok(b2.directBlockIds.includes('b1'), 'the distilled parent kernel ref is rehydrated')
+  assert.equal(b1.active, false, 'the distilled parent is inactive')
+  assert.equal(b2.active, true)
+  assert.equal(state.nextBlockId, 3, 'next kernel block id continues after the rehydrated max')
+})
+
+test('M2: rehydrated blocks stay anchorable — tier 3 works after a restart', async () => {
+  const env = makeEnv()
+  const session = buildTextSession(12)
+  const compress = toolOf(env, 'compress')
+  await compress.execute({ content: [{ startSeq: 1, endSeq: 5, summary: TIER_SUMMARY }] } as never, fakeExec(session))
+  const summarySeq = rebuildBlockLedger(session.snapshotEvents())[0]!.summarySeq!
+  await compress.execute({ content: [{ startSeq: summarySeq, endSeq: summarySeq, summary: TIER_SUMMARY }] } as never, fakeExec(session))
+  const ledger2 = rebuildBlockLedger(session.snapshotEvents())
+  const tier2Seq = ledger2[1]!.summarySeq!
+  assert.equal(ledger2[1]!.tier, 2)
+
+  // "Restart": a brand-new store AND kernel (a fresh engine process) serve the
+  // same durable session log; the tier-2 checkpoint must still anchor.
+  const restarted = makeEnv()
+  const result = await toolOf(restarted, 'compress').execute({
+    content: [{ startSeq: tier2Seq, endSeq: tier2Seq, summary: TIER_SUMMARY }],
+  } as never, fakeExec(session))
+  assert.match((result as { text: string }).text, /tier 3/, 'the rehydrated tier-2 block anchors after a restart')
+
+  const after = rebuildBlockLedger(session.snapshotEvents())
+  assert.equal(after.length, 3)
+  assert.equal(after[2]!.tier, 3)
+  assert.deepEqual(after[2]!.parentBlockIds, [ledger2[1]!.blockId])
+  assert.equal(after[2]!.kernelBlockId, 'b3', 'the post-restart kernel block id is recorded too')
+})
+
+test('M2: block topic persists through the log — the acp_status block title survives a restart', async () => {
+  const env = makeEnv()
+  const session = buildTextSession(12)
+  const compress = toolOf(env, 'compress')
+  await compress.execute({
+    content: [{ startSeq: 1, endSeq: 5, summary: TIER_SUMMARY, topic: 'auth subsystem' }],
+  } as never, fakeExec(session))
+
+  // The durable compaction/summary event and the log-rebuilt ledger carry the topic.
+  const ledger = rebuildBlockLedger(session.snapshotEvents())
+  assert.equal(ledger[0]!.topic, 'auth subsystem')
+
+  // A FRESH store (restarted engine) rehydrates the kernel block WITH the
+  // topic, so buildStatusReport's `block.topic` block-title row survives.
+  const fresh = new AcpStateStore()
+  const state = fresh.stateFor(session)
+  assert.equal(state.blocks[0]!.topic, 'auth subsystem')
+
+  // Optional semantics: a compress without topic records no topic field, and
+  // the rehydrated block has none (kernel renders "(no topic)" — unchanged).
+  // Distinct session id: kernel >= 0.0.54 refuses ranges fully covered by an
+  // active block, and the store keys state by session.id — sharing
+  // 'test-session' would make this compress look like a duplicate of the one
+  // above and land no block.
+  const plain = buildTextSession(12, 'plain-session')
+  await toolOf(env, 'compress').execute({
+    content: [{ startSeq: 1, endSeq: 5, summary: TIER_SUMMARY }],
+  } as never, fakeExec(plain))
+  const plainLedger = rebuildBlockLedger(plain.snapshotEvents())
+  assert.equal(plainLedger[0]!.topic, undefined)
+  const plainState = new AcpStateStore().stateFor(plain)
+  assert.equal(plainState.blocks[0]!.topic, undefined)
+})
+
+function buildNamedTextSession(id: string, count: number): Session {
+  const session = Session.create(id)
+  appendTurn(session, 1)
+  for (let index = 0; index < count; index += 1) {
+    if (index % 2 === 0) appendUser(session, longText('msg', index))
+    else appendAssistant(session, longText('reply', index), 1, index)
+  }
+  return session
+}
+
+test('M2: store cap evicts cold sessions losslessly — rehydration reproduces identical block identity', async () => {
+  const env = makeEnv()
+  const cold = buildNamedTextSession('lru-cold', 12)
+  const warm = buildNamedTextSession('lru-warm', 12)
+  const compress = toolOf(env, 'compress')
+  await compress.execute({ content: [{ startSeq: 1, endSeq: 5, summary: TIER_SUMMARY }] } as never, fakeExec(cold))
+  await compress.execute({ content: [{ startSeq: 1, endSeq: 5, summary: TIER_SUMMARY }] } as never, fakeExec(warm))
+
+  // A cap of ONE keeps only the most recently used session's live state.
+  const capped = new AcpStateStore(1)
+  const before = capped.stateFor(cold)
+  assert.equal(before.blocks.length, 1)
+  assert.equal(before.blocks[0]!.blockId, 'b1')
+  assert.equal(before.nextBlockId, 2)
+  assert.equal(before.nextRunId, 2)
+  capped.stateFor(warm)
+
+  // Cold's next access rehydrates from its log: same bN numbering and the
+  // same continuation counters — indistinguishable from the live state.
+  const after = capped.stateFor(cold)
+  assert.notEqual(after, before, 'the old live state was actually evicted')
+  assert.equal(after.blocks.length, 1)
+  assert.equal(after.blocks[0]!.blockId, 'b1')
+  assert.deepEqual(after.blocks[0]!.effectiveMessageIds, before.blocks[0]!.effectiveMessageIds)
+  assert.equal(after.nextBlockId, 2)
+  assert.equal(after.nextRunId, 2, 'run ids continue after the rehydrated max, not back at r1')
+})

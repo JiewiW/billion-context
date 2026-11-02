@@ -1,123 +1,115 @@
 {
-  "name": "billion-context",
-  "version": "0.1.199",
-  "description": "A context-compression plugin — small context windows (a 100K context is enough), 5x fewer tokens, month-long single sessions (billions of tokens), and compression quality — for all agents: pi, OpenCode, Codex, Claude Code, and more. billion-context is all you need.",
-  "type": "module",
-  "main": "dist/index.js",
-  "exports": {
-    ".": "./dist/agent/dsh-native.js",
-    "./server": "./dist/agent/opencode-native.js",
-    "./dsh": "./dist/agent/dsh-native.js",
-    "./package.json": "./package.json",
-    "./dsh/package.json": "./package.json",
-    "./client": "./dist/agent/dsh-native-client.js"
-  },
-  "bin": {
-    "bili": "./dist/index.js",
-    "bili-proxy": "./dist/index.js"
-  },
-  "scripts": {
-    "build": "npm --prefix kernel run build && npm --prefix pi-subagents run build && tsup && node scripts/write-build-info.mjs && node scripts/check-dist-import-annotations.mjs && node scripts/check-dist-external-zod.mjs",
-    "prepare": "node scripts/check-dist-ready.mjs",
-    "registry:snapshot": "node scripts/update-registry-snapshot.mjs",
-    "codex-models:snapshot": "node scripts/update-codex-models-snapshot.mjs",
-    "pretypecheck": "npm --prefix kernel run build && npm --prefix pi-subagents run build",
-    "typecheck": "tsc --noEmit --project tsconfig.json",
-    "check:unused-exports": "node scripts/check-unused-exports.mjs",
-    "check:test-import-graph": "node scripts/check-test-import-graph.mjs",
-    "pretest": "node scripts/test-suite-lock.mjs gate && npm --prefix kernel run build && npm --prefix pi-subagents run build",
-    "test": "node scripts/test-suite-lock.mjs run",
-    "start": "node dist/index.js",
-    "test:e2e": "node --import tsx --test tests/e2e/e2e-codex.test.ts",
-    "test:e2e:fake": "node --import tsx --test tests/e2e/e2e-codex-fake.test.ts",
-    "test:e2e:image": "node --import tsx --test tests/e2e/e2e-image-billing.test.ts",
-    "gate:local": "node scripts/release-gate-local.mjs"
-  },
-  "keywords": [
-    "context",
-    "compression",
-    "proxy",
-    "acp",
-    "ai",
-    "agent",
-    "claude-code",
-    "cursor",
-    "codex",
-    "aider",
-    "anthropic",
-    "openai",
-    "pi-package"
-  ],
-  "license": "MIT",
-  "author": "ranxianglei",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ranxianglei/billion-context.git"
-  },
-  "homepage": "https://github.com/ranxianglei/billion-context#readme",
-  "bugs": {
-    "url": "https://github.com/ranxianglei/billion-context/issues"
-  },
-  "dependencies": {
-    "zod": "4.1.8"
-  },
-  "optionalDependencies": {
-    "jimp": "1.6.1"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.83.0",
-    "@earendil-works/pi-tui": "0.83.0",
-    "@types/node": "^22.0.0",
-    "@types/node-forge": "^1.3.14",
-    "@types/semver": "^7.7.1",
-    "@types/ws": "8.18.2",
-    "acp-kernel": "file:./kernel",
-    "billion-context-pi-subagents": "file:./pi-subagents",
-    "esbuild": "^0.27.0",
-    "fzstd": "0.1.1",
-    "jsonc-parser": "^3.3.1",
-    "node-forge": "^1.4.0",
-    "prettier": "^3.3.0",
-    "semver": "7.8.5",
-    "tar": "^7.5.22",
-    "tsup": "^8.0.0",
-    "tsx": "^4.0.0",
-    "typebox": "^1.3.34",
-    "typescript": "^5.5.0",
-    "undici": "^7.29.0",
-    "verdaccio": "^6.10.4",
-    "ws": "8.22.0"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "files": [
-    "LICENSE",
-    "README.md",
-    "CONFIGURATION.md",
-    "CONFIGURATION.zh-CN.md",
-    "dist",
-    "dsh.bundle.patch.yml",
-    "hermes-plugin",
-    "paper/model-driven-incremental-hierarchical-compression-training-free-multi-generational-context-management-for-long-lived-coding-agents.md",
-    "paper/figures/*.png"
-  ],
-  "pi": {
-    "image": "https://raw.githubusercontent.com/ranxianglei/billion-context/master/docs/logo.png",
-    "extensions": [
-      "./dist/agent/pi-native.js"
-    ]
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
-  },
-  "dsh": {
-    "bundle": {
-      "patch": "./dsh.bundle.patch.yml"
-    },
-    "client": {
-      "platform": "web"
-    }
-  }
+	"name": "billion-context",
+	"version": "0.2.27",
+	"description": "Unmaintained — use ranxianglei/billion-context instead. Active Context Pruning (ACP) for the DeepSeek Harness — model-driven context management as a CompactionEngine backend.",
+	"keywords": [
+		"deepseek",
+		"harness",
+		"dsh",
+		"dsh-plugin",
+		"acp",
+		"context-management",
+		"context-compression",
+		"llm",
+		"agent",
+		"compaction"
+	],
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"cordis.patch.yml",
+		"README.md",
+		"README.en.md",
+		"LICENSE"
+	],
+	"sideEffects": false,
+	"dsh": {
+		"bundle": {
+			"patch": "./cordis.patch.yml"
+		}
+	},
+	"license": "MIT",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"build": "tsup && tsc --emitDeclarationOnly",
+		"test": "node --import tsx --test tests/*.test.ts tests/kernel-upstream/*.test.ts",
+		"test:e2e": "node scripts/e2e/run-e2e.mjs"
+	},
+	"peerDependencies": {
+		"@deepseek-ai/cordis": "^4.0.1",
+		"@deepseek-ai/dsh-brand": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-compaction": ">=0.1.5-alpha.1 <0.2.1-0",
+		"@deepseek-ai/dsh-session": ">=0.1.5-alpha.1 <0.2.1-0",
+		"@deepseek-ai/dsh-llm": ">=0.1.5-alpha.1 <0.2.1-0",
+		"@deepseek-ai/dsh-session-format": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-format-catalog": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-format-v1-to-v2": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-format-v2-to-v3": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-persistence": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-persistence-jsonl": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-timeout": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-tools": ">=0.1.5-alpha.1 <0.2.1-0",
+		"@deepseek-ai/dsh-settings": ">=0.1.5-alpha.1 <0.2.1-0",
+		"@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-util-crypto": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-util-values": "0.2.0-rc.2",
+		"@deepseek-ai/schemastery": "^3.18.2"
+	},
+	"devDependencies": {
+		"acp-kernel": "0.0.101",
+		"@deepseek-ai/cordis": "4.0.4",
+		"@deepseek-ai/cordis-plugin-loader": "1.0.5",
+		"@deepseek-ai/cosmokit": "1.8.5",
+		"@deepseek-ai/dsh-agent": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-agent-loop": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-agent-loop-testkit": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-anonymous-user-id": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-attachment": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-atomic-write": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-brand": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-compaction": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-compaction-image-offload": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-commands": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-deepseek-llm-api-extensions": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-fs": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-home-paths": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-invariants": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-launch-environment": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-llm-deepseek": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-llm-retry": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-ptc-runtime": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-sandbox-policy": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-scope": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-format-v0-to-v1": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-persistence": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-persistence-jsonl": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-session-projection": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-timeout": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-token-meter": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2",
+		"@deepseek-ai/dsh-user-approval": "0.2.0-rc.2",
+		"@deepseek-ai/schemastery": "3.18.4",
+		"@types/node": "^26.1.2",
+		"semver": "^7.7.1",
+		"tsup": "^8.5.1",
+		"tsx": "^4.23.1",
+		"typescript": "^7.0.2"
+	}
 }
