@@ -136,6 +136,13 @@ jobs:
           UPSTREAM_REPO: ranxianglei/acp-kernel
         run: |
           set -euo pipefail
+          # fork 默认不启用 Issues;没有 issue 可巡检时正常退出,
+          # 避免每天定时触发都以 "repository has disabled issues" 失败并发通知邮件
+          HAS_ISSUES=$(gh api "repos/$GITHUB_REPOSITORY" --jq '.has_issues')
+          if [ "$HAS_ISSUES" != "true" ]; then
+            echo "Issues disabled on $GITHUB_REPOSITORY: upstream watch skipped."
+            exit 0
+          fi
           # 1) pairs from the tracker doc: same table row must mention both
           #    (issue link and PR link live in different cells, so match row-wise)
           #    该文件由 PR #84 引入;未合并时文件不存在,跳过这一来源而不是报错
