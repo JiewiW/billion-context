@@ -7,7 +7,7 @@
 > 已发布的历史版本仍可安装使用，但不再提供支持。
 
 > **⚠️ 测试版声明——请勿用于生产环境**
-> 本项目（**v0.2.27**）仍处于开发中的测试版。[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 本身也处于**公开测试版**阶段。**请勿将两者用于工程化 / 生产环境**——预期会有破坏性变更与粗糙之处。
+> 本项目（**v0.2.28**）仍处于开发中的测试版。[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 本身也处于**公开测试版**阶段。**请勿将两者用于工程化 / 生产环境**——预期会有破坏性变更与粗糙之处。
 
 <p align="center">
 <strong>衷心感谢以下项目——请给它们一个 ⭐：</strong>
@@ -102,7 +102,7 @@ npm install billion-context
 **git 源安装（`github:` 规格，插件商店展示的形态）。** 预构建产物 `dist/` 已提交到仓库，从 git 源安装同样开箱即用——**无需任何构建步骤**，pnpm 11 默认拦截构建脚本（`allowBuilds`）的机制对这个包不构成障碍：
 
 ```bash
-dsh plugin --profile web add github:JiewiW/billion-context#v0.2.27
+dsh plugin --profile web add github:JiewiW/billion-context#v0.2.28
 ```
 
 建议带 `#<tag>` 安装，拿到与对应 npm 版本完全一致的产物；不带 ref 则装默认分支的最新构建。只有 clone 仓库自行从源码构建（`npm run build`）才需要放行构建。背景与方案取舍见 [docs/git-source-install-design.md](docs/git-source-install-design.md)（issue #92）。
