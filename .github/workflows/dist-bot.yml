@@ -22,6 +22,10 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tsup.config.ts'
+      # Re-run when the bot's own logic changes, so a workflow fix can verify
+      # itself (e.g. the --legacy-peer-deps install fix). dist commits do not
+      # touch this path, so the loop guard below still holds.
+      - '.github/workflows/dist-bot.yml'
 
 permissions:
   contents: write
