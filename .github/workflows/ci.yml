@@ -36,7 +36,10 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # DSH 0.2.x seam packages pin each other's peer ranges to the exact
+        # 0.2.0-rc.2 line, which npm's strict peer resolver cannot reconcile
+        # with the 0.2.2-rc5 compat baseline. Match the local install mode.
+        run: npm ci --legacy-peer-deps
 
       - name: Typecheck
         run: npm run typecheck
