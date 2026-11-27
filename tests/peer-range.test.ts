@@ -29,17 +29,19 @@ import semver from 'semver'
 // spec and semver-checks every `@deepseek-ai/dsh*` peer against the RUNNING
 // host version before installing anything), so the old ceiling made every
 // host from 0.1.6 onward reject the plugin outright — nothing was installed,
-// and the failure surfaced as a generic "plugin command failed". The
-// 0.2.0-rc.2 seam line is verified end-to-end here (typecheck + full suite +
-// e2e harness run against the 0.2.0-rc.2 devDeps baseline); the intermediate
-// 0.1.6/0.1.7 lines are admitted by bracket verification plus their documented
-// live audits of read-side shapes (V4 source kinds #163/#169,
-// compact-checkpoint #168, SettingsForms probe #173). The replace-op dialect
-// is unchanged across the whole band (pinned by tests/surfaceop-dialect.test.ts
-// against real sessions of whichever line is installed). `0.2.1-0` still sorts
-// ahead of any `0.2.1-x` prerelease (numeric ids precede alphanumeric ones),
-// so the NEXT line stays rejected until it is verified deliberately — the
-// house rule (no unverified line) is unchanged, only the verified set grew.
+// and the failure surfaced as a generic "plugin command failed".
+//
+// DSH 0.2.2-rc.5 COMPAT (2026-11-27) — the ceiling moved to `<0.3.0-0`.
+// 0.2.2-rc.5 rebases cordis to 4.1.0, schemastery to 3.19.0 and
+// cordis-plugin-loader to 1.1.0, and publishes every DSH seam package on the
+// 0.2.2-rc.5 line. The old `<0.2.1-0` ceiling (and the exact `0.2.0-rc.2`
+// pins on the eight static peers) made the 0.2.2-rc.5 host hard-refuse the
+// bundle at profile boot ("skipping profile bundle"). The whole 0.2.x line is
+// now verified end-to-end here (typecheck + full suite + e2e against the
+// 0.2.2-rc.5 devDeps baseline); `0.3.0-0` still sorts ahead of any
+// `0.3.0-x` prerelease, so the NEXT line stays rejected until it is verified
+// deliberately — the house rule (no unverified line) is unchanged, only the
+// verified set grew.
 //
 // The assertions below call semver.satisfies with `{ includePrerelease: true }`
 // — the EXACT option the host's pre-install gate uses (packages/boot/app-boot
@@ -73,14 +75,34 @@ const seamPeers = [
 	'@deepseek-ai/dsh-settings',
 ]
 
+// The eleven static peers are pinned to the exact 0.2.0-rc.2 line before the
+// 0.2.2 compat work. They are declared by the DSH seam as well (published
+// together), so they share the widened `>=0.2.0-rc.2 <0.3.0-0` band — a
+// different floor (0.2.0 base) than the five value-imported seam peers, which
+// still admit the older 0.1.5 line.
+const staticPeers = [
+	'@deepseek-ai/dsh-brand',
+	'@deepseek-ai/dsh-session-format',
+	'@deepseek-ai/dsh-session-format-catalog',
+	'@deepseek-ai/dsh-session-format-v1-to-v2',
+	'@deepseek-ai/dsh-session-format-v2-to-v3',
+	'@deepseek-ai/dsh-session-persistence',
+	'@deepseek-ai/dsh-session-persistence-jsonl',
+	'@deepseek-ai/dsh-timeout',
+	'@deepseek-ai/dsh-typert-protocol',
+	'@deepseek-ai/dsh-util-crypto',
+	'@deepseek-ai/dsh-util-values',
+]
+
 for (const peerName of seamPeers) {
 	const peerRange = pkg.peerDependencies[peerName]
 	assert.equal(typeof peerRange, 'string', `${peerName} must be declared as a peer (runtime VALUE-import)`)
 
-	test(`${peerName}: peer range accepts the whole verified seam band (0.1.5 → 0.2.0)`, () => {
-		// Every published version from the 0.1.5 floor through the 0.2.0
+	test(`${peerName}: peer range accepts the whole verified seam band (0.1.5 → 0.2.2)`, () => {
+		// Every published version from the 0.1.5 floor through the 0.2.2
 		// ceiling installs — including the live desktop builds from issue #136
-		// (0.1.5-alpha.2) and the issue #190 reporter's host (0.2.0-rc.2).
+		// (0.1.5-alpha.2), the issue #190 reporter's host (0.2.0-rc.2) and the
+		// 0.2.2-rc.5 host that triggered this compat work.
 		// Future same-line rCs stay in range, so new releases on an admitted
 		// line never break installs.
 		for (const v of [
@@ -88,6 +110,7 @@ for (const peerName of seamPeers) {
 			'0.1.6-alpha.1', '0.1.6-alpha.2', '0.1.6-rc.1', '0.1.6',
 			'0.1.7-alpha.1', '0.1.7-alpha.2', '0.1.7-rc.1', '0.1.7-rc.2', '0.1.7',
 			'0.2.0-rc.1', '0.2.0-rc.2', '0.2.0-rc.99', '0.2.0',
+			'0.2.1-rc.1', '0.2.1', '0.2.2-rc.1', '0.2.2-rc.5', '0.2.2',
 		]) {
 			assert.equal(
 				semver.satisfies(v, peerRange, { includePrerelease: true }),
@@ -109,9 +132,9 @@ for (const peerName of seamPeers) {
 				`${v} must NOT satisfy ${peerRange}`,
 			)
 		}
-		// Next line and beyond: 0.2.1+ (any prerelease or final) and 0.3.x are
+		// Next line and beyond: 0.3.0-0 (any prerelease or final) and 0.4.x are
 		// deliberate, later decisions — never silently allowed (house rule).
-		for (const v of ['0.2.1-0', '0.2.1-rc.1', '0.2.1', '0.2.2', '0.3.0-rc.1', '0.3.0']) {
+		for (const v of ['0.3.0-0', '0.3.0-rc.1', '0.3.0', '0.4.0-rc.1', '0.4.0']) {
 			assert.equal(
 				semver.satisfies(v, peerRange, { includePrerelease: true }),
 				false,
@@ -121,6 +144,34 @@ for (const peerName of seamPeers) {
 	})
 }
 
+for (const peerName of staticPeers) {
+	const peerRange = pkg.peerDependencies[peerName]
+	assert.equal(typeof peerRange, 'string', `${peerName} must be declared as a static peer`)
+
+	test(`${peerName}: static peer range accepts the verified 0.2.x band`, () => {
+		// These peers were previously pinned to the exact 0.2.0-rc.2 line and
+		// hard-refused the 0.2.2-rc.5 host. The floor stays at 0.2.0-rc.2 (the
+		// oldest line that was ever verified for these seams); the ceiling is
+		// the same <0.3.0-0 as the value-imported peers.
+		for (const v of ['0.2.0-rc.2', '0.2.0', '0.2.1-rc.1', '0.2.1', '0.2.2-rc.5', '0.2.2']) {
+			assert.equal(
+				semver.satisfies(v, peerRange, { includePrerelease: true }),
+				true,
+				`${v} must satisfy ${peerRange}`,
+			)
+		}
+	})
+
+	test(`${peerName}: static peer range rejects older and next-line versions`, () => {
+		for (const v of ['0.1.7', '0.2.0-rc.1', '0.3.0-0', '0.3.0-rc.1', '0.3.0']) {
+			assert.equal(
+				semver.satisfies(v, peerRange, { includePrerelease: true }),
+				false,
+				`${v} must NOT satisfy ${peerRange}`,
+			)
+		}
+	})
+}
 
 test('every runtime VALUE-imported seam package is declared as a peer', () => {
 	// dist/index.js must never carry a VALUE import of a @deepseek-ai seam
@@ -129,5 +180,19 @@ test('every runtime VALUE-imported seam package is declared as a peer', () => {
 	// crash). seamPeers above are the complete runtime set.
 	for (const name of seamPeers) {
 		assert.equal(typeof pkg.peerDependencies[name], 'string', `${name} must be a peer (runtime VALUE-import)`)
+	}
+})
+
+test('every declared DSH peer range admits the 0.2.2-rc.5 host', () => {
+	// Compatibility with the current DSH release is the whole point of the
+	// widening. Guard it directly so a future hand-edit cannot silently
+	// reintroduce a pin that makes the kernel skip the bundle again.
+	for (const [name, range] of Object.entries(pkg.peerDependencies)) {
+		if (!name.startsWith('@deepseek-ai/dsh-')) continue
+		assert.equal(
+			semver.satisfies('0.2.2-rc.5', range, { includePrerelease: true }),
+			true,
+			`${name}: 0.2.2-rc.5 must satisfy ${range}`,
+		)
 	}
 })

@@ -1,8 +1,7 @@
 import { runScenario } from './harness.mjs'
 import { readFileSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { Context } from '@deepseek-ai/cordis'
+import { readStoredEvents } from './jsonl-persistence.mjs'
 import { foldSurface } from '@deepseek-ai/dsh-session'
 const scenarioNames = ['basic-compress', 'nudge-rhythm', 'compress-then-decompress', 'acp-status', 'overflow-recovery', 'jsonl-compress']
 const countsOf = (events) => {
@@ -252,15 +251,7 @@ const sessionFilesOf = (root) => {
 // A FRESH backend instance over the same root — as close to "restart and reload"
 // as we can get without spinning up a second agent loop. open(id, 'read') takes no
 // write claim, so it coexists with the harness's (now disposed) writer.
-const storedEventsOf = async (result) => {
-  const store = new JsonlSessionPersistence(new Context(), { root: result.persistRoot })
-  const reader = await store.open(result.sessionId, 'read')
-  try {
-    return (await reader.read(0)).events
-  } finally {
-    await reader.close()
-  }
-}
+const storedEventsOf = async (result) => readStoredEvents(result.persistRoot, result.sessionId)
 // The retired V3 wrapper shape ({ kind: 'plugin', plugin: '<name>' }) is refused by
 // the V4-line writer outright ("format v4 message requires a producer-owned source
 // kind") — zero tolerance here is deliberate: any such row would brick the session.

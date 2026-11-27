@@ -1,4 +1,5 @@
 import { startFakeLlm } from './fake-llm.mjs'
+import { mountJsonlPersistence } from './jsonl-persistence.mjs'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -115,9 +116,8 @@ const runScenario = async (scenario, hooks = {}) => {
   // itself once this service is present; nothing else in the composition moves.
   // Fresh temp root per scenario run: a reused root would make the loop RESUME
   // last run's stored session instead of creating a new one.
-  const JsonlPersistence = (await import('@deepseek-ai/dsh-session-persistence-jsonl')).default
   const persistRoot = mkdtempSync(join(tmpdir(), 'e2e-sessions-'))
-  await ctx.plugin(JsonlPersistence, { root: persistRoot })
+  await mountJsonlPersistence(ctx, persistRoot)
   const sessionId = SessionId(scenario.name)
   const agent = await ctx.agentLoop.create(sessionId, {
     provider: 'deepseek-official',
